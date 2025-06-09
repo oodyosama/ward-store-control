@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Eye, QrCode, MoreHorizontal } from 'lucide-react';
 import Layout from '@/components/Layout/Layout';
@@ -25,7 +24,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function ItemsPage() {
   const { state } = useWarehouse();
@@ -348,7 +347,7 @@ export default function ItemsPage() {
             {selectedItem && (
               <div className="text-center space-y-4">
                 <div className="flex justify-center">
-                  <QRCode
+                  <QRCodeSVG
                     value={`${selectedItem.sku}|${selectedItem.name}|${selectedItem.id}`}
                     size={200}
                     level="M"
