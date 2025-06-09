@@ -111,6 +111,7 @@ export default {
 		require("tailwindcss-animate"),
 		require("@tailwindcss/forms")({
 			strategy: 'class'
-		})
+		}),
+		require('tailwind-scrollbar'),
 	],
 } satisfies Config;
