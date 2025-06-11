@@ -17,10 +17,26 @@ export const useItems = () => {
       if (error) throw error;
       
       return data.map(item => ({
-        ...item,
+        id: item.id,
+        name: item.name,
+        nameEn: item.name_en,
+        description: item.description,
+        sku: item.sku,
+        barcode: item.barcode,
+        qrCode: item.qr_code,
+        categoryId: item.category_id,
+        unit: item.unit,
+        minQuantity: item.min_quantity,
+        maxQuantity: item.max_quantity,
+        unitPrice: item.unit_price,
+        expiryDate: item.expiry_date ? new Date(item.expiry_date) : undefined,
+        batchNumber: item.batch_number,
+        supplier: item.supplier,
+        location: item.location,
+        images: item.images,
+        isActive: item.is_active,
         createdAt: new Date(item.created_at),
         updatedAt: new Date(item.updated_at),
-        expiryDate: item.expiry_date ? new Date(item.expiry_date) : undefined,
       })) as Item[];
     },
   });
