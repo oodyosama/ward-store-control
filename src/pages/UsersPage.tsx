@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Layout from '@/components/Layout/Layout';
-import { useWarehouse } from '@/contexts/WarehouseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,12 +50,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User } from '@/types/warehouse';
+import { useUsers, useAddUser } from '@/hooks/useUsers';
 
 export default function UsersPage() {
-  const { state } = useWarehouse();
+  const { users } = useUsers();
+  const { addUser } = useAddUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
@@ -64,51 +66,7 @@ export default function UsersPage() {
     isActive: true
   });
 
-  // Mock users data - in real app this would come from the warehouse context or API
-  const mockUsers: User[] = [
-    {
-      id: '1',
-      username: 'أحمد محمد',
-      email: 'ahmed@warehouse.com',
-      role: 'admin',
-      permissions: ['read', 'write', 'delete', 'manage_users'],
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastLogin: new Date('2024-06-10')
-    },
-    {
-      id: '2',
-      username: 'فاطمة علي',
-      email: 'fatima@warehouse.com',
-      role: 'manager',
-      permissions: ['read', 'write', 'manage_inventory'],
-      isActive: true,
-      createdAt: new Date('2024-02-20'),
-      lastLogin: new Date('2024-06-09')
-    },
-    {
-      id: '3',
-      username: 'محمد حسن',
-      email: 'mohammed@warehouse.com',
-      role: 'warehouse_keeper',
-      permissions: ['read', 'write'],
-      isActive: true,
-      createdAt: new Date('2024-03-10'),
-      lastLogin: new Date('2024-06-08')
-    },
-    {
-      id: '4',
-      username: 'سارة أحمد',
-      email: 'sara@warehouse.com',
-      role: 'accountant',
-      permissions: ['read'],
-      isActive: false,
-      createdAt: new Date('2024-04-05'),
-      lastLogin: new Date('2024-05-15')
-    }
-  ];
-
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
@@ -145,19 +103,30 @@ export default function UsersPage() {
     }
   };
 
-  const handleAddUser = () => {
-    console.log('Adding user:', newUser);
-    setIsAddUserOpen(false);
-    setNewUser({
-      username: '',
-      email: '',
-      role: 'warehouse_keeper',
-      isActive: true
-    });
+  const handleAddUser = async () => {
+    if (!newUser.username.trim() || !newUser.email.trim()) {
+      return;
+    }
+
+    setIsLoading(true);
+    
+    const result = await addUser(newUser);
+    
+    if (result.success) {
+      setIsAddUserOpen(false);
+      setNewUser({
+        username: '',
+        email: '',
+        role: 'warehouse_keeper',
+        isActive: true
+      });
+    }
+    
+    setIsLoading(false);
   };
 
-  const activeUsersCount = mockUsers.filter(user => user.isActive).length;
-  const inactiveUsersCount = mockUsers.filter(user => !user.isActive).length;
+  const activeUsersCount = users.filter(user => user.isActive).length;
+  const inactiveUsersCount = users.filter(user => !user.isActive).length;
 
   return (
     <Layout>
@@ -195,6 +164,7 @@ export default function UsersPage() {
                     value={newUser.username}
                     onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                     placeholder="أدخل اسم المستخدم"
+                    required
                   />
                 </div>
                 <div className="grid gap-2">
@@ -205,6 +175,7 @@ export default function UsersPage() {
                     value={newUser.email}
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                     placeholder="user@example.com"
+                    required
                   />
                 </div>
                 <div className="grid gap-2">
@@ -223,8 +194,12 @@ export default function UsersPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" onClick={handleAddUser}>
-                  إضافة المستخدم
+                <Button 
+                  type="submit" 
+                  onClick={handleAddUser}
+                  disabled={isLoading || !newUser.username.trim() || !newUser.email.trim()}
+                >
+                  {isLoading ? 'جاري الإضافة...' : 'إضافة المستخدم'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -239,7 +214,7 @@ export default function UsersPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockUsers.length}</div>
+              <div className="text-2xl font-bold">{users.length}</div>
             </CardContent>
           </Card>
           
@@ -270,7 +245,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {mockUsers.filter(user => user.role === 'admin' || user.role === 'manager').length}
+                {users.filter(user => user.role === 'admin' || user.role === 'manager').length}
               </div>
             </CardContent>
           </Card>
