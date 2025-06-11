@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Plus, MapPin, Phone, Mail, Users, Package, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import Layout from '@/components/Layout/Layout';
 import { useWarehouse } from '@/contexts/WarehouseContext';
+import { useWarehouses, useAddWarehouse } from '@/hooks/useWarehouses';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,19 @@ import {
 
 export default function WarehousesPage() {
   const { state } = useWarehouse();
+  const { data: warehouses = [], isLoading } = useWarehouses();
+  const addWarehouse = useAddWarehouse();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    nameEn: '',
+    code: '',
+    capacity: '',
+    address: '',
+    manager: '',
+    phone: '',
+    email: ''
+  });
 
   // حساب إحصائيات المخازن
   const getWarehouseStats = (warehouseId: string) => {
@@ -31,6 +44,50 @@ export default function WarehousesPage() {
     
     return { totalItems, totalValue, totalQuantity };
   };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.code || !formData.address || !formData.manager) {
+      return;
+    }
+
+    await addWarehouse.mutateAsync({
+      name: formData.name,
+      nameEn: formData.nameEn || undefined,
+      code: formData.code,
+      address: formData.address,
+      manager: formData.manager,
+      phone: formData.phone || undefined,
+      email: formData.email || undefined,
+      isActive: true,
+      capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
+    });
+
+    setFormData({
+      name: '',
+      nameEn: '',
+      code: '',
+      capacity: '',
+      address: '',
+      manager: '',
+      phone: '',
+      email: ''
+    });
+    setIsAddDialogOpen(false);
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">جاري تحميل المخازن...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -61,7 +118,7 @@ export default function WarehousesPage() {
                   <Package className="w-6 h-6" />
                 </div>
                 <div className="mr-4 text-right">
-                  <p className="text-2xl font-bold">{state.warehouses.length}</p>
+                  <p className="text-2xl font-bold">{warehouses.length}</p>
                   <p className="text-sm text-gray-600">إجمالي المخازن</p>
                 </div>
               </div>
@@ -76,7 +133,7 @@ export default function WarehousesPage() {
                 </div>
                 <div className="mr-4 text-right">
                   <p className="text-2xl font-bold">
-                    {state.warehouses.filter(w => w.isActive).length}
+                    {warehouses.filter(w => w.isActive).length}
                   </p>
                   <p className="text-sm text-gray-600">مخازن نشطة</p>
                 </div>
@@ -119,7 +176,7 @@ export default function WarehousesPage() {
 
         {/* قائمة المخازن */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {state.warehouses.map((warehouse) => {
+          {warehouses.map((warehouse) => {
             const stats = getWarehouseStats(warehouse.id);
             
             return (
@@ -251,6 +308,19 @@ export default function WarehousesPage() {
           })}
         </div>
 
+        {warehouses.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-lg text-gray-600">لا توجد مخازن مضافة بعد</p>
+            <Button 
+              onClick={() => setIsAddDialogOpen(true)}
+              className="mt-4 bg-orange-600 hover:bg-orange-700"
+            >
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة أول مخزن
+            </Button>
+          </div>
+        )}
+
         {/* نافذة إضافة مخزن جديد */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="sm:max-w-lg">
@@ -261,52 +331,103 @@ export default function WarehousesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">اسم المخزن</Label>
-                  <Input id="name" placeholder="المخزن الرئيسي" className="text-right" />
+                  <Input 
+                    id="name" 
+                    placeholder="المخزن الرئيسي" 
+                    className="text-right"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="nameEn">الاسم بالإنجليزية</Label>
-                  <Input id="nameEn" placeholder="Main Warehouse" />
+                  <Input 
+                    id="nameEn" 
+                    placeholder="Main Warehouse"
+                    value={formData.nameEn}
+                    onChange={(e) => handleInputChange('nameEn', e.target.value)}
+                  />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="code">رمز المخزن</Label>
-                  <Input id="code" placeholder="WH001" className="text-right font-mono" />
+                  <Input 
+                    id="code" 
+                    placeholder="WH001" 
+                    className="text-right font-mono"
+                    value={formData.code}
+                    onChange={(e) => handleInputChange('code', e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="capacity">السعة التخزينية</Label>
-                  <Input id="capacity" type="number" placeholder="10000" className="text-right" />
+                  <Input 
+                    id="capacity" 
+                    type="number" 
+                    placeholder="10000" 
+                    className="text-right"
+                    value={formData.capacity}
+                    onChange={(e) => handleInputChange('capacity', e.target.value)}
+                  />
                 </div>
               </div>
               
               <div>
                 <Label htmlFor="address">العنوان</Label>
-                <Textarea id="address" placeholder="أدخل العنوان الكامل للمخزن" className="text-right" />
+                <Textarea 
+                  id="address" 
+                  placeholder="أدخل العنوان الكامل للمخزن" 
+                  className="text-right"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="manager">مدير المخزن</Label>
-                  <Input id="manager" placeholder="أحمد محمد" className="text-right" />
+                  <Input 
+                    id="manager" 
+                    placeholder="أحمد محمد" 
+                    className="text-right"
+                    value={formData.manager}
+                    onChange={(e) => handleInputChange('manager', e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="phone">رقم الهاتف</Label>
-                  <Input id="phone" placeholder="+966501234567" />
+                  <Input 
+                    id="phone" 
+                    placeholder="+966501234567"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                  />
                 </div>
               </div>
               
               <div>
                 <Label htmlFor="email">البريد الإلكتروني</Label>
-                <Input id="email" type="email" placeholder="warehouse@company.com" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="warehouse@company.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                />
               </div>
               
               <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   إلغاء
                 </Button>
-                <Button className="bg-orange-600 hover:bg-orange-700">
-                  إضافة المخزن
+                <Button 
+                  className="bg-orange-600 hover:bg-orange-700"
+                  onClick={handleSubmit}
+                  disabled={addWarehouse.isPending}
+                >
+                  {addWarehouse.isPending ? 'جاري الإضافة...' : 'إضافة المخزن'}
                 </Button>
               </div>
             </div>
