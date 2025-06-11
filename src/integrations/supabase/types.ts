@@ -9,7 +9,302 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          name_en: string | null
+          parent_id: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id: string
+          name: string
+          name_en?: string | null
+          parent_id?: string | null
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          name_en?: string | null
+          parent_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          barcode: string | null
+          batch_number: string | null
+          category_id: string
+          created_at: string
+          description: string | null
+          expiry_date: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean
+          location: string | null
+          max_quantity: number | null
+          min_quantity: number
+          name: string
+          name_en: string | null
+          qr_code: string | null
+          sku: string
+          supplier: string | null
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          batch_number?: string | null
+          category_id: string
+          created_at?: string
+          description?: string | null
+          expiry_date?: string | null
+          id: string
+          images?: string[] | null
+          is_active?: boolean
+          location?: string | null
+          max_quantity?: number | null
+          min_quantity?: number
+          name: string
+          name_en?: string | null
+          qr_code?: string | null
+          sku: string
+          supplier?: string | null
+          unit: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          batch_number?: string | null
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          expiry_date?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          location?: string | null
+          max_quantity?: number | null
+          min_quantity?: number
+          name?: string
+          name_en?: string | null
+          qr_code?: string | null
+          sku?: string
+          supplier?: string | null
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stocks: {
+        Row: {
+          available_quantity: number
+          batch_number: string | null
+          expiry_date: string | null
+          id: string
+          item_id: string
+          last_updated: string
+          quantity: number
+          reserved_quantity: number
+          total_value: number
+          unit_price: number
+          warehouse_id: string
+          zone_id: string | null
+        }
+        Insert: {
+          available_quantity?: number
+          batch_number?: string | null
+          expiry_date?: string | null
+          id: string
+          item_id: string
+          last_updated?: string
+          quantity?: number
+          reserved_quantity?: number
+          total_value?: number
+          unit_price?: number
+          warehouse_id: string
+          zone_id?: string | null
+        }
+        Update: {
+          available_quantity?: number
+          batch_number?: string | null
+          expiry_date?: string | null
+          id?: string
+          item_id?: string
+          last_updated?: string
+          quantity?: number
+          reserved_quantity?: number
+          total_value?: number
+          unit_price?: number
+          warehouse_id?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocks_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          batch_number: string | null
+          completed_at: string | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          quantity: number
+          reference: string | null
+          status: string
+          target_warehouse_id: string | null
+          total_value: number
+          type: string
+          unit_price: number
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          batch_number?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id: string
+          item_id: string
+          notes?: string | null
+          quantity: number
+          reference?: string | null
+          status?: string
+          target_warehouse_id?: string | null
+          total_value?: number
+          type: string
+          unit_price?: number
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          batch_number?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          quantity?: number
+          reference?: string | null
+          status?: string
+          target_warehouse_id?: string | null
+          total_value?: number
+          type?: string
+          unit_price?: number
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_target_warehouse_id_fkey"
+            columns: ["target_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warehouses: {
+        Row: {
+          address: string
+          capacity: number | null
+          code: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          manager: string
+          name: string
+          name_en: string | null
+          phone: string | null
+        }
+        Insert: {
+          address: string
+          capacity?: number | null
+          code: string
+          created_at?: string
+          email?: string | null
+          id: string
+          is_active?: boolean
+          manager: string
+          name: string
+          name_en?: string | null
+          phone?: string | null
+        }
+        Update: {
+          address?: string
+          capacity?: number | null
+          code?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          manager?: string
+          name?: string
+          name_en?: string | null
+          phone?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

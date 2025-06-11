@@ -6,9 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWarehouse } from '@/contexts/WarehouseContext';
-import { useToast } from '@/hooks/use-toast';
-import { Item } from '@/types/warehouse';
+import { useAddItem } from '@/hooks/useItems';
+import { useCategories } from '@/hooks/useCategories';
 
 interface AddItemDialogProps {
   isAddDialogOpen: boolean;
@@ -28,8 +27,8 @@ interface AddItemFormData {
 }
 
 export default function AddItemDialog({ isAddDialogOpen, setIsAddDialogOpen }: AddItemDialogProps) {
-  const { dispatch } = useWarehouse();
-  const { toast } = useToast();
+  const addItemMutation = useAddItem();
+  const { data: categories } = useCategories();
 
   const form = useForm<AddItemFormData>({
     defaultValues: {
@@ -46,39 +45,25 @@ export default function AddItemDialog({ isAddDialogOpen, setIsAddDialogOpen }: A
   });
 
   const onSubmit = (data: AddItemFormData) => {
-    try {
-      const newItem: Item = {
-        id: `item_${Date.now()}`,
-        name: data.name,
-        nameEn: data.nameEn,
-        description: data.description,
-        sku: data.sku,
-        categoryId: data.categoryId,
-        unit: data.unit,
-        minQuantity: data.minQuantity,
-        maxQuantity: data.maxQuantity,
-        unitPrice: data.unitPrice,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+    const newItem = {
+      name: data.name,
+      nameEn: data.nameEn,
+      description: data.description,
+      sku: data.sku,
+      categoryId: data.categoryId,
+      unit: data.unit,
+      minQuantity: data.minQuantity,
+      maxQuantity: data.maxQuantity,
+      unitPrice: data.unitPrice,
+      isActive: true,
+    };
 
-      dispatch({ type: 'ADD_ITEM', payload: newItem });
-      
-      toast({
-        title: "تم إضافة الصنف بنجاح",
-        description: `تم إضافة الصنف "${data.name}" بنجاح`,
-      });
-
-      form.reset();
-      setIsAddDialogOpen(false);
-    } catch (error) {
-      toast({
-        title: "خطأ في إضافة الصنف",
-        description: "حدث خطأ أثناء إضافة الصنف، يرجى المحاولة مرة أخرى",
-        variant: "destructive"
-      });
-    }
+    addItemMutation.mutate(newItem, {
+      onSuccess: () => {
+        form.reset();
+        setIsAddDialogOpen(false);
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -153,9 +138,11 @@ export default function AddItemDialog({ isAddDialogOpen, setIsAddDialogOpen }: A
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="cat1">مواد خام</SelectItem>
-                      <SelectItem value="cat2">منتج نهائي</SelectItem>
-                      <SelectItem value="cat3">مواد تغليف</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -253,12 +240,26 @@ export default function AddItemDialog({ isAddDialogOpen, setIsAddDialogOpen }: A
               />
             </div>
 
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الوصف</FormLabel>
+                  <FormControl>
+                    <Input placeholder="وصف الصنف..." className="text-right" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
-              <Button type="button" variant="outline" onClick={handleCancel}>
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={addItemMutation.isPending}>
                 إلغاء
               </Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                إضافة الصنف
+              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={addItemMutation.isPending}>
+                {addItemMutation.isPending ? "جاري الإضافة..." : "إضافة الصنف"}
               </Button>
             </div>
           </form>
