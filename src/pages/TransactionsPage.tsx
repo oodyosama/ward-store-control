@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, ArrowRightLeft, Filter, Calendar, Search } from 'lucide-react';
 import Layout from '@/components/Layout/Layout';
 import { useWarehouse } from '@/contexts/WarehouseContext';
+import { useTransactions, useAddTransaction } from '@/hooks/useTransactions';
+import { useItems } from '@/hooks/useItems';
+import { useWarehouses } from '@/hooks/useWarehouses';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,19 +24,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { Transaction } from '@/types/warehouse';
 
 export default function TransactionsPage() {
   const { state } = useWarehouse();
+  const { data: transactions = [], isLoading } = useTransactions();
+  const { data: items = [] } = useItems();
+  const { data: warehouses = [] } = useWarehouses();
+  const { mutate: addTransaction, isPending } = useAddTransaction();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedWarehouse, setSelectedWarehouse] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [transactionType, setTransactionType] = useState('inbound');
+  const [transactionType, setTransactionType] = useState<Transaction['type']>('inbound');
+  
+  // Form state
+  const [selectedItem, setSelectedItem] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+  const [selectedTargetWarehouse, setSelectedTargetWarehouse] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [price, setPrice] = useState('');
+  const [reference, setReference] = useState('');
+  const [notes, setNotes] = useState('');
 
   // تصفية الحركات
-  const filteredTransactions = state.transactions.filter(transaction => {
-    const item = state.items.find(i => i.id === transaction.itemId);
-    const warehouse = state.warehouses.find(w => w.id === transaction.warehouseId);
+  const filteredTransactions = transactions.filter(transaction => {
+    const item = items.find(i => i.id === transaction.itemId);
+    const warehouse = warehouses.find(w => w.id === transaction.warehouseId);
     
     const matchesSearch = item?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          transaction.reference?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -44,15 +62,15 @@ export default function TransactionsPage() {
   });
 
   // حساب الإحصائيات
-  const totalInbound = state.transactions
+  const totalInbound = transactions
     .filter(t => t.type === 'inbound')
     .reduce((sum, t) => sum + t.totalValue, 0);
   
-  const totalOutbound = state.transactions
+  const totalOutbound = transactions
     .filter(t => t.type === 'outbound')
     .reduce((sum, t) => sum + t.totalValue, 0);
   
-  const pendingTransactions = state.transactions.filter(t => t.status === 'pending').length;
+  const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
 
   // دالة لترجمة نوع الحركة
   const getTransactionTypeLabel = (type: string) => {
@@ -77,6 +95,47 @@ export default function TransactionsPage() {
       default: return 'bg-gray-500';
     }
   };
+
+  const handleAddTransaction = () => {
+    if (!selectedItem || !selectedWarehouseId || !quantity || !price) {
+      return;
+    }
+
+    const quantityNum = parseInt(quantity);
+    const priceNum = parseFloat(price);
+    
+    const newTransaction: Omit<Transaction, 'id' | 'createdAt' | 'completedAt'> = {
+      type: transactionType,
+      itemId: selectedItem,
+      warehouseId: selectedWarehouseId,
+      targetWarehouseId: transactionType === 'transfer' ? selectedTargetWarehouse : undefined,
+      quantity: quantityNum,
+      unitPrice: priceNum,
+      totalValue: quantityNum * priceNum,
+      reference,
+      notes,
+      userId: 'user_demo',
+      status: 'completed',
+    };
+
+    addTransaction(newTransaction, {
+      onSuccess: () => {
+        setIsAddDialogOpen(false);
+        // Reset form
+        setSelectedItem('');
+        setSelectedWarehouseId('');
+        setSelectedTargetWarehouse('');
+        setQuantity('');
+        setPrice('');
+        setReference('');
+        setNotes('');
+      }
+    });
+  };
+
+  if (isLoading) {
+    return <Layout><div>جاري التحميل...</div></Layout>;
+  }
 
   return (
     <Layout>
@@ -146,7 +205,7 @@ export default function TransactionsPage() {
                   <ArrowRightLeft className="w-6 h-6" />
                 </div>
                 <div className="mr-4 text-right">
-                  <p className="text-2xl font-bold">{state.transactions.length}</p>
+                  <p className="text-2xl font-bold">{transactions.length}</p>
                   <p className="text-sm text-gray-600">إجمالي الحركات</p>
                 </div>
               </div>
@@ -204,7 +263,7 @@ export default function TransactionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">جميع المخازن</SelectItem>
-                  {state.warehouses.map(warehouse => (
+                  {warehouses.map(warehouse => (
                     <SelectItem key={warehouse.id} value={warehouse.id}>
                       {warehouse.name}
                     </SelectItem>
@@ -243,8 +302,8 @@ export default function TransactionsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredTransactions.map((transaction) => {
-                    const item = state.items.find(i => i.id === transaction.itemId);
-                    const warehouse = state.warehouses.find(w => w.id === transaction.warehouseId);
+                    const item = items.find(i => i.id === transaction.itemId);
+                    const warehouse = warehouses.find(w => w.id === transaction.warehouseId);
                     
                     return (
                       <TableRow key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
@@ -265,11 +324,11 @@ export default function TransactionsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div>
-                            <p className="font-medium">{item?.name}</p>
+                            <p className="font-medium">{item?.name || 'غير معروف'}</p>
                             <p className="text-sm text-gray-500">{item?.sku}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">{warehouse?.name}</TableCell>
+                        <TableCell className="text-right">{warehouse?.name || 'غير معروف'}</TableCell>
                         <TableCell className="text-right">
                           <span className={`font-medium ${
                             transaction.type === 'inbound' ? 'text-green-600' : 
@@ -278,7 +337,7 @@ export default function TransactionsPage() {
                           }`}>
                             {transaction.type === 'inbound' ? '+' : 
                              transaction.type === 'outbound' ? '-' : ''}
-                            {transaction.quantity} {item?.unit}
+                            {transaction.quantity} {item?.unit || 'قطعة'}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -337,12 +396,12 @@ export default function TransactionsPage() {
               
               <div>
                 <Label htmlFor="item">الصنف</Label>
-                <Select>
+                <Select value={selectedItem} onValueChange={setSelectedItem}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الصنف" />
                   </SelectTrigger>
                   <SelectContent>
-                    {state.items.map(item => (
+                    {items.map(item => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.name} ({item.sku})
                       </SelectItem>
@@ -353,12 +412,12 @@ export default function TransactionsPage() {
               
               <div>
                 <Label htmlFor="warehouse">المخزن</Label>
-                <Select>
+                <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر المخزن" />
                   </SelectTrigger>
                   <SelectContent>
-                    {state.warehouses.map(warehouse => (
+                    {warehouses.map(warehouse => (
                       <SelectItem key={warehouse.id} value={warehouse.id}>
                         {warehouse.name}
                       </SelectItem>
@@ -370,12 +429,12 @@ export default function TransactionsPage() {
               {transactionType === 'transfer' && (
                 <div>
                   <Label htmlFor="targetWarehouse">إلى المخزن</Label>
-                  <Select>
+                  <Select value={selectedTargetWarehouse} onValueChange={setSelectedTargetWarehouse}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر المخزن المستهدف" />
                     </SelectTrigger>
                     <SelectContent>
-                      {state.warehouses.map(warehouse => (
+                      {warehouses.map(warehouse => (
                         <SelectItem key={warehouse.id} value={warehouse.id}>
                           {warehouse.name}
                         </SelectItem>
@@ -388,34 +447,64 @@ export default function TransactionsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="quantity">الكمية</Label>
-                  <Input id="quantity" type="number" placeholder="0" className="text-right" />
+                  <Input 
+                    id="quantity" 
+                    type="number" 
+                    placeholder="0" 
+                    className="text-right" 
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="price">السعر</Label>
-                  <Input id="price" type="number" placeholder="0.00" className="text-right" />
+                  <Input 
+                    id="price" 
+                    type="number" 
+                    placeholder="0.00" 
+                    className="text-right" 
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
                 </div>
               </div>
               
               <div>
                 <Label htmlFor="reference">المرجع</Label>
-                <Input id="reference" placeholder="PO-001, SO-001..." className="text-right" />
+                <Input 
+                  id="reference" 
+                  placeholder="PO-001, SO-001..." 
+                  className="text-right" 
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                />
               </div>
               
               <div>
                 <Label htmlFor="notes">ملاحظات</Label>
-                <Textarea id="notes" placeholder="ملاحظات إضافية..." className="text-right" />
+                <Textarea 
+                  id="notes" 
+                  placeholder="ملاحظات إضافية..." 
+                  className="text-right" 
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
               </div>
               
               <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   إلغاء
                 </Button>
-                <Button className={`${
-                  transactionType === 'inbound' ? 'bg-green-600 hover:bg-green-700' :
-                  transactionType === 'outbound' ? 'bg-red-600 hover:bg-red-700' :
-                  'bg-blue-600 hover:bg-blue-700'
-                }`}>
-                  إضافة الحركة
+                <Button 
+                  onClick={handleAddTransaction}
+                  disabled={isPending}
+                  className={`${
+                    transactionType === 'inbound' ? 'bg-green-600 hover:bg-green-700' :
+                    transactionType === 'outbound' ? 'bg-red-600 hover:bg-red-700' :
+                    'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {isPending ? 'جاري الإضافة...' : 'إضافة الحركة'}
                 </Button>
               </div>
             </div>
