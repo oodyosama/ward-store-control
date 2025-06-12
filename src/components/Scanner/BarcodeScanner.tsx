@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Flashlight, FlashlightOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 interface BarcodeScannerProps {
   onScanResult: (data: string) => void;
@@ -12,10 +13,11 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onScanResult, onScanError, isActive }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [flashOn, setFlashOn] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     if (isActive && !isInitialized) {
@@ -31,6 +33,11 @@ export default function BarcodeScanner({ onScanResult, onScanError, isActive }: 
 
   const initializeScanner = async () => {
     try {
+      console.log('Initializing barcode scanner...');
+      
+      // Initialize the barcode reader
+      readerRef.current = new BrowserMultiFormatReader();
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -46,50 +53,58 @@ export default function BarcodeScanner({ onScanResult, onScanError, isActive }: 
         
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play();
-          startScanning();
+          startBarcodeDetection();
         };
       }
     } catch (error) {
-      onScanError('فشل في الوصول للكاميرا');
       console.error('Camera access error:', error);
+      onScanError('فشل في الوصول للكاميرا. تأكد من منح الإذن للكاميرا.');
+    }
+  };
+
+  const startBarcodeDetection = async () => {
+    if (!readerRef.current || !videoRef.current || isScanning) return;
+    
+    console.log('Starting barcode detection...');
+    setIsScanning(true);
+
+    try {
+      // Start continuous scanning
+      const result = await readerRef.current.decodeFromVideoDevice(
+        undefined, // Use default video device
+        videoRef.current,
+        (result, error) => {
+          if (result) {
+            console.log('Barcode detected:', result.getText());
+            onScanResult(result.getText());
+            return;
+          }
+          
+          if (error && !(error instanceof NotFoundException)) {
+            console.warn('Barcode detection error:', error);
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Barcode detection error:', error);
+      onScanError('خطأ في قراءة الباركود');
     }
   };
 
   const stopScanner = () => {
+    console.log('Stopping barcode scanner...');
+    
+    if (readerRef.current) {
+      readerRef.current.reset();
+    }
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    setIsInitialized(false);
-  };
-
-  const startScanning = () => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
     
-    if (!canvas || !video) return;
-
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    const scanFrame = () => {
-      if (!isActive) return;
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // محاولة قراءة الباركود من الصورة
-      // هذا مجرد محاكاة - في التطبيق الحقيقي ستحتاج مكتبة مثل ZXing أو QuaggaJS
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      
-      // محاكاة نتيجة المسح (في التطبيق الحقيقي ستستخدم مكتبة فعلية)
-      // يمكنك إضافة مكتبة مثل @zxing/library أو quagga
-      
-      requestAnimationFrame(scanFrame);
-    };
-
-    scanFrame();
+    setIsInitialized(false);
+    setIsScanning(false);
   };
 
   const toggleFlash = async () => {
@@ -103,16 +118,12 @@ export default function BarcodeScanner({ onScanResult, onScanError, isActive }: 
           setFlashOn(!flashOn);
         } catch (error) {
           console.error('Flash toggle error:', error);
+          onScanError('فشل في تشغيل/إطفاء الفلاش');
         }
+      } else {
+        onScanError('الفلاش غير متوفر على هذا الجهاز');
       }
     }
-  };
-
-  // محاكاة مسح باركود عند النقر على الفيديو
-  const handleVideoClick = () => {
-    // محاكاة نتيجة مسح ناجحة
-    const mockBarcodeData = `ITEM_${Date.now()}`;
-    onScanResult(mockBarcodeData);
   };
 
   return (
@@ -122,10 +133,10 @@ export default function BarcodeScanner({ onScanResult, onScanError, isActive }: 
           <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
             <video
               ref={videoRef}
-              className="w-full h-full object-cover cursor-pointer"
+              className="w-full h-full object-cover"
               playsInline
               muted
-              onClick={handleVideoClick}
+              autoPlay
             />
             
             {/* إطار المسح */}
@@ -138,6 +149,13 @@ export default function BarcodeScanner({ onScanResult, onScanError, isActive }: 
                 
                 {/* خط المسح المتحرك */}
                 <div className="absolute inset-x-0 top-1/2 h-0.5 bg-green-500 animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* حالة المسح */}
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+              <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                {isScanning ? 'جاري البحث عن الباركود...' : 'في انتظار بدء المسح'}
               </div>
             </div>
 
@@ -157,16 +175,11 @@ export default function BarcodeScanner({ onScanResult, onScanError, isActive }: 
               </Button>
             </div>
           </div>
-
-          <canvas
-            ref={canvasRef}
-            className="hidden"
-          />
         </div>
 
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            وجه الكاميرا نحو الباركود أو QR Code واضغط على الشاشة للمسح
+            وجه الكاميرا نحو الباركود أو QR Code وسيتم المسح تلقائياً
           </p>
         </div>
       </CardContent>
