@@ -19,9 +19,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ReportsPage() {
   const { state } = useWarehouse();
+  const { toast } = useToast();
   const [selectedReport, setSelectedReport] = useState('stock');
   const [selectedWarehouse, setSelectedWarehouse] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -89,7 +94,6 @@ export default function ReportsPage() {
     });
   };
 
-  // بيانات تقرير الحركات
   const getMovementReport = () => {
     return state.transactions.filter(transaction => {
       const matchesWarehouse = selectedWarehouse === 'all' || transaction.warehouseId === selectedWarehouse;
@@ -99,17 +103,15 @@ export default function ReportsPage() {
     });
   };
 
-  // بيانات تقرير الأصناف المنخفضة
   const getLowStockReport = () => {
     return getStockReport().filter(data => 
       data.totalQuantity <= data.item.minQuantity && data.totalQuantity > 0
     );
   };
 
-  // بيانات تقرير انتهاء الصلاحية
   const getExpiryReport = () => {
     const today = new Date();
-    const warningDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 يوم
+    const warningDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     return state.stocks.filter(stock => {
       const matchesWarehouse = selectedWarehouse === 'all' || stock.warehouseId === selectedWarehouse;
@@ -122,13 +124,219 @@ export default function ReportsPage() {
     });
   };
 
-  // تصدير التقرير
-  const exportReport = (format: 'excel' | 'pdf') => {
-    console.log(`تصدير التقرير بصيغة ${format}`);
-    // هنا يمكن إضافة منطق التصدير الفعلي
+  // Get current report data
+  const getCurrentReportData = () => {
+    switch (selectedReport) {
+      case 'stock':
+        return getStockReport();
+      case 'movement':
+        return getMovementReport();
+      case 'low_stock':
+        return getLowStockReport();
+      case 'expiry':
+        return getExpiryReport();
+      default:
+        return [];
+    }
   };
 
-  // طباعة التقرير
+  // Export to Excel
+  const exportToExcel = () => {
+    try {
+      const data = getCurrentReportData();
+      let worksheetData: any[] = [];
+      
+      switch (selectedReport) {
+        case 'stock':
+          const stockData = data as ReturnType<typeof getStockReport>;
+          worksheetData = stockData.map(item => ({
+            'الصنف': item.item.name,
+            'رقم الصنف': item.item.sku,
+            'الكمية الإجمالية': `${item.totalQuantity} ${item.item.unit}`,
+            'الكمية المتاحة': `${item.availableQuantity} ${item.item.unit}`,
+            'القيمة الإجمالية': `${item.totalValue.toLocaleString()} ريال`,
+            'الحالة': item.status
+          }));
+          break;
+          
+        case 'movement':
+          const movementData = data as ReturnType<typeof getMovementReport>;
+          worksheetData = movementData.map(transaction => {
+            const item = state.items.find(i => i.id === transaction.itemId);
+            return {
+              'التاريخ': format(transaction.createdAt, 'dd/MM/yyyy', { locale: ar }),
+              'النوع': transaction.type === 'inbound' ? 'وارد' : transaction.type === 'outbound' ? 'صادر' : 'تحويل',
+              'الصنف': item?.name || '',
+              'الكمية': `${transaction.quantity} ${item?.unit || ''}`,
+              'القيمة': `${transaction.totalValue.toLocaleString()} ريال`,
+              'المرجع': transaction.reference
+            };
+          });
+          break;
+          
+        case 'low_stock':
+          const lowStockData = data as ReturnType<typeof getLowStockReport>;
+          worksheetData = lowStockData.map(item => ({
+            'الصنف': item.item.name,
+            'الكمية الحالية': `${item.totalQuantity} ${item.item.unit}`,
+            'الحد الأدنى': `${item.item.minQuantity} ${item.item.unit}`,
+            'المطلوب طلبه': `${Math.max(0, item.item.minQuantity - item.totalQuantity)} ${item.item.unit}`,
+            'الأولوية': item.totalQuantity === 0 ? 'عاجل' : 'متوسط'
+          }));
+          break;
+          
+        case 'expiry':
+          const expiryData = data as ReturnType<typeof getExpiryReport>;
+          worksheetData = expiryData.map(item => {
+            const daysRemaining = item.stock.expiryDate ? 
+              Math.ceil((item.stock.expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+            return {
+              'الصنف': item.item?.name || '',
+              'المخزن': item.warehouse?.name || '',
+              'الكمية': `${item.stock.quantity} ${item.item?.unit || ''}`,
+              'تاريخ الانتهاء': item.stock.expiryDate ? format(item.stock.expiryDate, 'dd/MM/yyyy', { locale: ar }) : '-',
+              'الأيام المتبقية': `${daysRemaining} يوم`
+            };
+          });
+          break;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      const reportName = reportTypes.find(r => r.id === selectedReport)?.name || 'تقرير';
+      
+      XLSX.utils.book_append_sheet(workbook, worksheet, reportName);
+      XLSX.writeFile(workbook, `${reportName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      
+      toast({
+        title: "تم تصدير التقرير بنجاح",
+        description: "تم تنزيل ملف Excel بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ في تصدير التقرير",
+        description: "حدث خطأ أثناء تصدير التقرير إلى Excel",
+        variant: "destructive"
+      });
+      console.error('Excel export error:', error);
+    }
+  };
+
+  // Export to PDF
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const data = getCurrentReportData();
+      const reportName = reportTypes.find(r => r.id === selectedReport)?.name || 'تقرير';
+      
+      // Set font for Arabic support (you might need to add Arabic font)
+      doc.setFontSize(16);
+      doc.text(reportName, 20, 20);
+      doc.setFontSize(12);
+      doc.text(`تاريخ التقرير: ${format(new Date(), 'dd/MM/yyyy', { locale: ar })}`, 20, 35);
+
+      let tableData: any[] = [];
+      let headers: string[] = [];
+
+      switch (selectedReport) {
+        case 'stock':
+          const stockData = data as ReturnType<typeof getStockReport>;
+          headers = ['الصنف', 'رقم الصنف', 'الكمية الإجمالية', 'الكمية المتاحة', 'القيمة الإجمالية', 'الحالة'];
+          tableData = stockData.map(item => [
+            item.item.name,
+            item.item.sku,
+            `${item.totalQuantity} ${item.item.unit}`,
+            `${item.availableQuantity} ${item.item.unit}`,
+            `${item.totalValue.toLocaleString()} ريال`,
+            item.status
+          ]);
+          break;
+          
+        case 'movement':
+          const movementData = data as ReturnType<typeof getMovementReport>;
+          headers = ['التاريخ', 'النوع', 'الصنف', 'الكمية', 'القيمة', 'المرجع'];
+          tableData = movementData.map(transaction => {
+            const item = state.items.find(i => i.id === transaction.itemId);
+            return [
+              format(transaction.createdAt, 'dd/MM/yyyy', { locale: ar }),
+              transaction.type === 'inbound' ? 'وارد' : transaction.type === 'outbound' ? 'صادر' : 'تحويل',
+              item?.name || '',
+              `${transaction.quantity} ${item?.unit || ''}`,
+              `${transaction.totalValue.toLocaleString()} ريال`,
+              transaction.reference
+            ];
+          });
+          break;
+          
+        case 'low_stock':
+          const lowStockData = data as ReturnType<typeof getLowStockReport>;
+          headers = ['الصنف', 'الكمية الحالية', 'الحد الأدنى', 'المطلوب طلبه', 'الأولوية'];
+          tableData = lowStockData.map(item => [
+            item.item.name,
+            `${item.totalQuantity} ${item.item.unit}`,
+            `${item.item.minQuantity} ${item.item.unit}`,
+            `${Math.max(0, item.item.minQuantity - item.totalQuantity)} ${item.item.unit}`,
+            item.totalQuantity === 0 ? 'عاجل' : 'متوسط'
+          ]);
+          break;
+          
+        case 'expiry':
+          const expiryData = data as ReturnType<typeof getExpiryReport>;
+          headers = ['الصنف', 'المخزن', 'الكمية', 'تاريخ الانتهاء', 'الأيام المتبقية'];
+          tableData = expiryData.map(item => {
+            const daysRemaining = item.stock.expiryDate ? 
+              Math.ceil((item.stock.expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+            return [
+              item.item?.name || '',
+              item.warehouse?.name || '',
+              `${item.stock.quantity} ${item.item?.unit || ''}`,
+              item.stock.expiryDate ? format(item.stock.expiryDate, 'dd/MM/yyyy', { locale: ar }) : '-',
+              `${daysRemaining} يوم`
+            ];
+          });
+          break;
+      }
+
+      (doc as any).autoTable({
+        head: [headers],
+        body: tableData,
+        startY: 50,
+        styles: {
+          font: 'helvetica',
+          fontSize: 10,
+        },
+        headStyles: {
+          fillColor: [66, 139, 202],
+          textColor: 255,
+        },
+      });
+
+      doc.save(`${reportName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      toast({
+        title: "تم تصدير التقرير بنجاح",
+        description: "تم تنزيل ملف PDF بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ في تصدير التقرير",
+        description: "حدث خطأ أثناء تصدير التقرير إلى PDF",
+        variant: "destructive"
+      });
+      console.error('PDF export error:', error);
+    }
+  };
+
+  // Updated export function
+  const exportReport = (format: 'excel' | 'pdf') => {
+    if (format === 'excel') {
+      exportToExcel();
+    } else if (format === 'pdf') {
+      exportToPDF();
+    }
+  };
+
+  // Print report
   const printReport = () => {
     window.print();
   };
