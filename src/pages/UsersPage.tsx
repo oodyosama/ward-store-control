@@ -8,7 +8,7 @@ import { User } from '@/types/warehouse';
 import { useUsers, useAddUser } from '@/hooks/useUsers';
 
 export default function UsersPage() {
-  const { users } = useUsers();
+  const { users, isLoading: usersLoading, refetch } = useUsers();
   const { addUser } = useAddUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
@@ -38,10 +38,22 @@ export default function UsersPage() {
         role: 'warehouse_keeper',
         isActive: true
       });
+      // Refresh the users list
+      refetch();
     }
     
     setIsLoading(false);
   };
+
+  if (usersLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">جاري تحميل المستخدمين...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

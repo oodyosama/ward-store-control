@@ -1,57 +1,51 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@/types/warehouse';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock users data - in a real app this would come from a database
-const mockUsers: User[] = [
-  {
-    id: '1',
-    username: 'أحمد محمد',
-    email: 'ahmed@warehouse.com',
-    role: 'admin',
-    permissions: ['read', 'write', 'delete', 'manage_users'],
-    isActive: true,
-    createdAt: new Date('2024-01-15'),
-    lastLogin: new Date('2024-06-10')
-  },
-  {
-    id: '2',
-    username: 'فاطمة علي',
-    email: 'fatima@warehouse.com',
-    role: 'manager',
-    permissions: ['read', 'write', 'manage_inventory'],
-    isActive: true,
-    createdAt: new Date('2024-02-20'),
-    lastLogin: new Date('2024-06-09')
-  },
-  {
-    id: '3',
-    username: 'محمد حسن',
-    email: 'mohammed@warehouse.com',
-    role: 'warehouse_keeper',
-    permissions: ['read', 'write'],
-    isActive: true,
-    createdAt: new Date('2024-03-10'),
-    lastLogin: new Date('2024-06-08')
-  },
-  {
-    id: '4',
-    username: 'سارة أحمد',
-    email: 'sara@warehouse.com',
-    role: 'accountant',
-    permissions: ['read'],
-    isActive: false,
-    createdAt: new Date('2024-04-05'),
-    lastLogin: new Date('2024-05-15')
-  }
-];
-
-let usersState = [...mockUsers];
+import { supabase } from '@/integrations/supabase/client';
 
 export function useUsers() {
-  const [users] = useState<User[]>(usersState);
-  return { users };
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+
+      // Transform Supabase data to match our User type
+      const transformedUsers: User[] = (data || []).map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role as User['role'],
+        permissions: user.permissions || [],
+        isActive: user.is_active,
+        createdAt: new Date(user.created_at),
+        lastLogin: user.last_login ? new Date(user.last_login) : undefined
+      }));
+
+      setUsers(transformedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  return { users, isLoading, refetch: fetchUsers };
 }
 
 export function useAddUser() {
@@ -80,26 +74,36 @@ export function useAddUser() {
         }
       };
 
-      const newUser: User = {
-        id: Date.now().toString(),
-        username: userData.username,
-        email: userData.email,
-        role: userData.role,
-        permissions: getPermissionsByRole(userData.role),
-        isActive: userData.isActive,
-        createdAt: new Date(),
-        lastLogin: undefined
-      };
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{
+          username: userData.username,
+          email: userData.email,
+          role: userData.role,
+          permissions: getPermissionsByRole(userData.role),
+          is_active: userData.isActive,
+        }])
+        .select()
+        .single();
 
-      // Add to mock data
-      usersState.unshift(newUser);
+      if (error) {
+        console.error('Error adding user:', error);
+        toast({
+          title: "خطأ في إضافة المستخدم",
+          description: error.message === 'duplicate key value violates unique constraint "users_email_key"' 
+            ? "البريد الإلكتروني مستخدم بالفعل" 
+            : "حدث خطأ أثناء إضافة المستخدم. يرجى المحاولة مرة أخرى.",
+          variant: "destructive",
+        });
+        return { success: false };
+      }
 
       toast({
         title: "تم إنشاء المستخدم بنجاح",
         description: `تم إضافة المستخدم ${userData.username} بنجاح`,
       });
 
-      return { success: true };
+      return { success: true, data };
     } catch (error) {
       console.error('Error adding user:', error);
       toast({

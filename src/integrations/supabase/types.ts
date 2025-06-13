@@ -263,6 +263,39 @@ export type Database = {
           },
         ]
       }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          last_login: string | null
+          permissions: string[]
+          role: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          permissions?: string[]
+          role?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          permissions?: string[]
+          role?: string
+          username?: string
+        }
+        Relationships: []
+      }
       warehouses: {
         Row: {
           address: string
