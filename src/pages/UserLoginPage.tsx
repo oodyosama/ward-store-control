@@ -21,10 +21,22 @@ export default function UserLoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!loginData.username || !loginData.password) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى إدخال اسم المستخدم وكلمة المرور",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // First, get the user profile and associated email
+      console.log('بدء محاولة تسجيل دخول المستخدم:', loginData.username);
+
+      // البحث عن المستخدم في قاعدة البيانات
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
         .select(`
@@ -37,6 +49,7 @@ export default function UserLoginPage() {
         .single();
 
       if (profileError || !profile) {
+        console.error('خطأ في العثور على المستخدم:', profileError);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود",
@@ -45,7 +58,7 @@ export default function UserLoginPage() {
         return;
       }
 
-      // Get the user's email from the tenants table
+      // الحصول على البريد الإلكتروني من جدول المؤسسات
       const userEmail = profile.tenants?.email;
       if (!userEmail) {
         toast({
@@ -56,13 +69,14 @@ export default function UserLoginPage() {
         return;
       }
 
-      // Sign in with email and password
+      // تسجيل الدخول بالبريد الإلكتروني وكلمة المرور
       const { data, error } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: loginData.password
       });
 
       if (error) {
+        console.error('خطأ في المصادقة:', error);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: error.message === 'Invalid login credentials' 
@@ -73,7 +87,7 @@ export default function UserLoginPage() {
         return;
       }
 
-      // Check if user is active
+      // التحقق من أن المستخدم نشط
       const tenantUser = Array.isArray(profile.tenant_users) ? profile.tenant_users[0] : null;
       if (!tenantUser || !tenantUser.is_active) {
         toast({
@@ -92,13 +106,14 @@ export default function UserLoginPage() {
 
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('خطأ عام في تسجيل الدخول:', error);
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع",
         variant: "destructive",
       });
     } finally {
+      // التأكد من إيقاف حالة التحميل
       setIsLoading(false);
     }
   };
@@ -132,6 +147,7 @@ export default function UserLoginPage() {
                   value={loginData.username}
                   onChange={(e) => setLoginData({...loginData, username: e.target.value})}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -148,6 +164,7 @@ export default function UserLoginPage() {
                   value={loginData.password}
                   onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>

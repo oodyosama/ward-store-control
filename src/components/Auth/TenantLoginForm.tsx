@@ -37,9 +37,9 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
     setIsLoading(true);
 
     try {
-      console.log('Attempting login for username:', loginData.username);
+      console.log('بدء محاولة تسجيل الدخول للمستخدم:', loginData.username);
 
-      // First, get the tenant profile associated with this username
+      // البحث عن المستخدم في قاعدة البيانات
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
         .select(`
@@ -51,7 +51,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         .single();
 
       if (profileError || !profile) {
-        console.error('Profile lookup error:', profileError);
+        console.error('خطأ في العثور على المستخدم:', profileError);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود أو غير صحيح",
@@ -60,21 +60,21 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         return;
       }
 
-      console.log('Found profile:', profile);
+      console.log('تم العثور على المستخدم:', profile);
 
-      // Generate the internal email from username
+      // إنشاء البريد الإلكتروني الداخلي
       const internalEmail = `${loginData.username}@tenant.local`;
       
-      console.log('Attempting auth with email:', internalEmail);
+      console.log('محاولة تسجيل الدخول بالبريد الإلكتروني:', internalEmail);
 
-      // Sign in with email and password
+      // تسجيل الدخول بالبريد الإلكتروني وكلمة المرور
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: internalEmail,
         password: loginData.password
       });
 
       if (authError) {
-        console.error('Auth error:', authError);
+        console.error('خطأ في المصادقة:', authError);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: authError.message === 'Invalid login credentials' 
@@ -85,22 +85,24 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         return;
       }
 
-      console.log('Auth successful:', authData);
+      console.log('تم تسجيل الدخول بنجاح:', authData);
 
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${profile.username}`,
       });
 
+      // الانتقال إلى الصفحة الرئيسية
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('خطأ عام في تسجيل الدخول:', error);
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
     } finally {
+      // التأكد من إيقاف حالة التحميل
       setIsLoading(false);
     }
   };
