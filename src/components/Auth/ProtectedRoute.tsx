@@ -24,13 +24,20 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-lg text-gray-600">جاري التحميل...</p>
+          <p className="text-sm text-gray-500 mt-2">يتم تحميل بيانات المستخدم</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-lg text-gray-600">جاري التوجيه لصفحة تسجيل الدخول...</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
