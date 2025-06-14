@@ -26,7 +26,6 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
     e.preventDefault();
     
     console.log('=== LOGIN ATTEMPT START ===');
-    console.log('Current isLoading state:', isLoading);
     
     if (!loginData.username || !loginData.password) {
       console.log('❌ Validation failed - missing credentials');
@@ -56,8 +55,8 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
 
       if (profileError || !profile) {
         console.error('❌ Profile not found:', profileError);
-        setIsLoading(false);
         console.log('🔄 Setting isLoading to FALSE (profile not found)');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود أو غير صحيح",
@@ -78,8 +77,8 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
 
       if (authError) {
         console.error('❌ Auth error:', authError.message);
-        setIsLoading(false);
         console.log('🔄 Setting isLoading to FALSE (auth error)');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: authError.message === 'Invalid login credentials' 
@@ -98,18 +97,14 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
       });
 
       console.log('🚀 Navigating to dashboard...');
-      
-      // تأخير بسيط للتأكد من اكتمال العملية
-      setTimeout(() => {
-        setIsLoading(false);
-        console.log('🔄 Setting isLoading to FALSE (success)');
-        navigate('/dashboard');
-      }, 100);
+      console.log('🔄 Setting isLoading to FALSE (success)');
+      setIsLoading(false);
+      navigate('/dashboard');
 
     } catch (error) {
       console.error('❌ Unexpected error:', error);
-      setIsLoading(false);
       console.log('🔄 Setting isLoading to FALSE (catch block)');
+      setIsLoading(false);
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",

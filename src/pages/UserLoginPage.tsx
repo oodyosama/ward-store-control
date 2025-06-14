@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Lock, User, ArrowLeft, Building2 } from 'lucide-react';
+import { Users, Lock, User, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,6 @@ export default function UserLoginPage() {
     e.preventDefault();
     
     console.log('=== USER LOGIN ATTEMPT START ===');
-    console.log('Current isLoading state:', isLoading);
     
     if (!loginData.username || !loginData.password) {
       console.log('❌ UserLogin validation failed - missing credentials');
@@ -54,8 +53,8 @@ export default function UserLoginPage() {
 
       if (profileError || !profile) {
         console.error('❌ UserLogin profile not found:', profileError);
-        setIsLoading(false);
         console.log('🔄 UserLogin setting isLoading to FALSE (profile not found)');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود",
@@ -67,8 +66,8 @@ export default function UserLoginPage() {
       const userEmail = profile.tenants?.email;
       if (!userEmail) {
         console.log('❌ UserLogin no email found');
-        setIsLoading(false);
         console.log('🔄 UserLogin setting isLoading to FALSE (no email)');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "البريد الإلكتروني غير موجود",
@@ -86,8 +85,8 @@ export default function UserLoginPage() {
 
       if (error) {
         console.error('❌ UserLogin auth error:', error.message);
-        setIsLoading(false);
         console.log('🔄 UserLogin setting isLoading to FALSE (auth error)');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: error.message === 'Invalid login credentials' 
@@ -101,8 +100,8 @@ export default function UserLoginPage() {
       const tenantUser = Array.isArray(profile.tenant_users) ? profile.tenant_users[0] : null;
       if (!tenantUser || !tenantUser.is_active) {
         console.log('❌ UserLogin inactive user');
-        setIsLoading(false);
         console.log('🔄 UserLogin setting isLoading to FALSE (inactive user)');
+        setIsLoading(false);
         toast({
           title: "حساب معطل",
           description: "تم تعطيل حسابك. يرجى مراجعة المسؤول",
@@ -120,18 +119,14 @@ export default function UserLoginPage() {
       });
 
       console.log('🚀 UserLogin navigating to dashboard...');
-      
-      // تأخير بسيط للتأكد من اكتمال العملية
-      setTimeout(() => {
-        setIsLoading(false);
-        console.log('🔄 UserLogin setting isLoading to FALSE (success)');
-        navigate('/dashboard');
-      }, 100);
+      console.log('🔄 UserLogin setting isLoading to FALSE (success)');
+      setIsLoading(false);
+      navigate('/dashboard');
 
     } catch (error) {
       console.error('❌ UserLogin unexpected error:', error);
-      setIsLoading(false);
       console.log('🔄 UserLogin setting isLoading to FALSE (catch block)');
+      setIsLoading(false);
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع",
