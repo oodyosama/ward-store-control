@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -22,7 +23,6 @@ import TenantLoginPage from "./pages/TenantLoginPage";
 import TenantSignupPage from "./pages/TenantSignupPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient({
@@ -44,9 +44,6 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/login" element={<TenantLoginPage />} />
-                <Route path="/tenant-signup" element={<TenantSignupPage />} />
-                <Route path="/user-login" element={<UserLoginPage />} />
                 <Route path="/dashboard" element={<Index />} />
                 <Route path="/items" element={<ItemsPageWithSupabase />} />
                 <Route path="/warehouses" element={<WarehousesPage />} />
@@ -59,7 +56,9 @@ const App = () => {
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/pos" element={<POSPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="/login" element={<TenantLoginPage />} />
+                <Route path="/tenant-signup" element={<TenantSignupPage />} />
+                <Route path="/user-login" element={<UserLoginPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

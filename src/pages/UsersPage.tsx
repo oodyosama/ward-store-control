@@ -5,22 +5,15 @@ import UsersHeader from '@/components/Users/UsersHeader';
 import UsersStats from '@/components/Users/UsersStats';
 import UsersTable from '@/components/Users/UsersTable';
 import { User } from '@/types/warehouse';
-import { useUsers, useAddUser } from '@/hooks/useUsers';
-import { useWarehouse } from '@/contexts/WarehouseContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUsersSimple, useAddUserSimple } from '@/hooks/useUsersSimple';
 
 export default function UsersPage() {
-  const { users, isLoading: usersLoading, refetch } = useUsers();
-  const { addUser } = useAddUser();
-  const { state } = useWarehouse();
+  const { users, isLoading: usersLoading, refetch } = useUsersSimple();
+  const { addUser } = useAddUserSimple();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // مؤقتاً نعتبر المستخدم مدير حتى يتم تفعيل المصادقة مرة أخرى
-  const isAdmin = !state.currentUser || state.currentUser?.role === 'admin';
-  const hasManageUsersPermission = !state.currentUser || state.currentUser?.permissions?.includes('manage_users') || isAdmin;
 
   const handleAddUser = async (userData: {
     username: string;
