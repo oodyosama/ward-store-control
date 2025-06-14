@@ -18,7 +18,7 @@ export function useAdminAuth() {
   const validateAdminCredentials = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // استعلام للتحقق من بيانات المدير
+      // استعلام للتحقق من بيانات المدير باستخدام الدالة المخصصة
       const { data, error } = await supabase.rpc('validate_admin_login', {
         input_username: username,
         input_password: password
@@ -29,7 +29,8 @@ export function useAdminAuth() {
         return false;
       }
 
-      return data || false;
+      // التأكد من أن النتيجة هي boolean
+      return Boolean(data);
     } catch (error) {
       console.error('Error validating admin credentials:', error);
       return false;
@@ -41,7 +42,7 @@ export function useAdminAuth() {
   const updateAdminCredentials = async (newUsername: string, newPassword: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.rpc('update_admin_credentials', {
+      const { data, error } = await supabase.rpc('update_admin_credentials', {
         new_username: newUsername,
         new_password: newPassword
       });
@@ -61,7 +62,7 @@ export function useAdminAuth() {
         description: "تم تحديث اسم المستخدم وكلمة المرور بنجاح",
       });
 
-      return true;
+      return Boolean(data);
     } catch (error) {
       console.error('Error updating admin credentials:', error);
       toast({

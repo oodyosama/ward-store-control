@@ -545,6 +545,14 @@ export type Database = {
         }
         Returns: string
       }
+      update_admin_credentials: {
+        Args: { new_username: string; new_password: string }
+        Returns: boolean
+      }
+      validate_admin_login: {
+        Args: { input_username: string; input_password: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
