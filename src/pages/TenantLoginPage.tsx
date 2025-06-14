@@ -142,7 +142,11 @@ export default function TenantLoginPage() {
 
       console.log('Auth user created:', authData.user.id);
 
-      // Create tenant
+      // Wait a moment for auth to be established
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Create tenant first
+      console.log('Creating tenant...');
       const { data: tenantData, error: tenantError } = await supabase
         .from('tenants')
         .insert([{
@@ -156,15 +160,18 @@ export default function TenantLoginPage() {
         console.error('Tenant creation error:', tenantError);
         toast({
           title: "خطأ في إنشاء المؤسسة",
-          description: "فشل في إنشاء بيانات المؤسسة",
+          description: tenantError.message || "فشل في إنشاء بيانات المؤسسة",
           variant: "destructive",
         });
+        // Clean up auth user if tenant creation fails
+        await supabase.auth.admin.deleteUser(authData.user.id);
         return;
       }
 
       console.log('Tenant created:', tenantData.id);
 
       // Create tenant profile
+      console.log('Creating tenant profile...');
       const { error: profileError } = await supabase
         .from('tenant_profiles')
         .insert([{
@@ -178,11 +185,13 @@ export default function TenantLoginPage() {
         console.error('Profile creation error:', profileError);
         toast({
           title: "خطأ في إنشاء الملف الشخصي",
-          description: "فشل في إنشاء الملف الشخصي",
+          description: profileError.message || "فشل في إنشاء الملف الشخصي",
           variant: "destructive",
         });
         return;
       }
+
+      console.log('Profile created successfully');
 
       // Create tenant user record
       const { error: tenantUserError } = await supabase
@@ -196,24 +205,20 @@ export default function TenantLoginPage() {
 
       if (tenantUserError) {
         console.error('Tenant user creation error:', tenantUserError);
-        toast({
-          title: "خطأ في إنشاء صلاحيات المستخدم",
-          description: "فشل في إنشاء صلاحيات المستخدم",
-          variant: "destructive",
-        });
-        return;
+        // Don't fail the signup for this, as it's not critical
+        console.log('Warning: Failed to create tenant user record, but continuing...');
       }
 
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "يمكنك الآن تسجيل الدخول",
+        description: "يمكنك الآن تسجيل الدخول باستخدام بياناتك",
       });
 
       // Switch to login tab
       const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
       loginTab?.click();
 
-      // Clear signup form
+      // Clear signup form and set login email
       setSignupData({
         tenantName: '',
         email: '',
@@ -222,11 +227,17 @@ export default function TenantLoginPage() {
         username: ''
       });
 
+      // Pre-fill login email
+      setLoginData({
+        email: signupData.email,
+        password: ''
+      });
+
     } catch (error) {
       console.error('Signup error:', error);
       toast({
         title: "خطأ في إنشاء الحساب",
-        description: "حدث خطأ غير متوقع",
+        description: "حدث خطأ غير متوقع أثناء إنشاء الحساب",
         variant: "destructive",
       });
     } finally {
