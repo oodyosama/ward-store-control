@@ -23,6 +23,7 @@ import TenantLoginPage from "./pages/TenantLoginPage";
 import TenantSignupPage from "./pages/TenantSignupPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/Dashboard";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient({
@@ -43,7 +44,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<TenantLoginPage />} />
+                <Route path="/" element={<Dashboard />} />
                 <Route path="/login" element={<TenantLoginPage />} />
                 <Route path="/tenant-signup" element={<TenantSignupPage />} />
                 <Route path="/user-login" element={<UserLoginPage />} />
