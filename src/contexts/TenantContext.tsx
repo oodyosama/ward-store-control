@@ -54,22 +54,46 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      console.log('Fetching profile for user:', userId);
+      
+      // First, fetch the tenant profile
+      const { data: profileData, error: profileError } = await supabase
         .from('tenant_profiles')
         .select(`
           *,
-          tenants(*),
-          tenant_users(*)
+          tenants(*)
         `)
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
         return null;
       }
 
-      return data;
+      console.log('Profile data:', profileData);
+
+      // Then, fetch the tenant user data separately
+      const { data: tenantUserData, error: tenantUserError } = await supabase
+        .from('tenant_users')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('tenant_id', profileData.tenant_id);
+
+      if (tenantUserError) {
+        console.error('Error fetching tenant user data:', tenantUserError);
+        // Continue without tenant user data if there's an error
+      }
+
+      console.log('Tenant user data:', tenantUserData);
+
+      // Combine the data
+      const completeProfile: TenantProfile = {
+        ...profileData,
+        tenant_users: tenantUserData || []
+      };
+
+      return completeProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -84,9 +108,12 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    console.log('Setting up auth state listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -103,6 +130,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Existing session:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
 
