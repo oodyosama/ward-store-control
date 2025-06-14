@@ -6,20 +6,19 @@ import UsersStats from '@/components/Users/UsersStats';
 import UsersTable from '@/components/Users/UsersTable';
 import { User } from '@/types/warehouse';
 import { useUsers, useAddUser } from '@/hooks/useUsers';
-import { useWarehouse } from '@/contexts/WarehouseContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function UsersPage() {
   const { users, isLoading: usersLoading, refetch } = useUsers();
   const { addUser } = useAddUser();
-  const { state } = useWarehouse();
+  const { hasPermission, isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isAdmin = state.currentUser?.role === 'admin';
-  const hasManageUsersPermission = state.currentUser?.permissions?.includes('manage_users') || isAdmin;
+  const hasManageUsersPermission = hasPermission('manage_users') || isAdmin;
 
   const handleAddUser = async (userData: {
     username: string;

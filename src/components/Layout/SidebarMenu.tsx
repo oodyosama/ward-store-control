@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { menuItems, systemItems } from './menuConfig';
 import { useWarehouse } from '@/contexts/WarehouseContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SidebarMenuProps {
   onLinkClick: () => void;
@@ -11,23 +12,21 @@ interface SidebarMenuProps {
 
 export default function SidebarMenu({ onLinkClick }: SidebarMenuProps) {
   const { state } = useWarehouse();
+  const { hasPermission, isAdmin } = useAuth();
   const unreadNotifications = state.notifications.filter(n => !n.isRead).length;
 
-  const isAdmin = state.currentUser?.role === 'admin';
-  const userPermissions = state.currentUser?.permissions || ['read'];
-
-  const hasPermission = (requiredPermissions: string[]) => {
+  const checkPermissions = (requiredPermissions: string[]) => {
     if (isAdmin) return true;
-    return requiredPermissions.some(permission => userPermissions.includes(permission));
+    return requiredPermissions.some(permission => hasPermission(permission));
   };
 
   const filteredMenuItems = menuItems.filter(item => 
-    hasPermission(item.permissions)
+    checkPermissions(item.permissions)
   );
 
   const filteredSystemItems = systemItems.filter(item => {
     if (item.adminOnly && !isAdmin) return false;
-    return hasPermission(item.permissions);
+    return checkPermissions(item.permissions);
   });
 
   return (

@@ -5,6 +5,7 @@ import { useAdminAuth } from './useAdminAuth';
 interface User {
   username: string;
   role: 'admin' | 'user';
+  permissions: string[];
   mustChangePassword?: boolean;
 }
 
@@ -16,9 +17,23 @@ interface AuthContextType {
   isAdmin: boolean;
   updateAdminCredentials: (newUsername: string, newPassword: string) => Promise<boolean>;
   mustChangePassword: boolean;
+  hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// تعريف الصلاحيات الافتراضية لكل دور
+const DEFAULT_PERMISSIONS: Record<string, string[]> = {
+  admin: [
+    'read', 'write', 'delete', 'manage_users', 'manage_items', 
+    'manage_warehouses', 'view_reports', 'manage_transactions', 
+    'export_data', 'system_settings', 'pos_access'
+  ],
+  cashier: ['read', 'pos_access'],
+  warehouse_keeper: ['read', 'write', 'manage_items', 'manage_transactions'],
+  manager: ['read', 'write', 'view_reports', 'manage_items', 'manage_transactions'],
+  accountant: ['read', 'view_reports', 'export_data']
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -30,12 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedAuth = localStorage.getItem('isAuthenticated');
     const storedUsername = localStorage.getItem('username');
     const storedRole = localStorage.getItem('userRole') as 'admin' | 'user';
+    const storedPermissions = localStorage.getItem('userPermissions');
     const mustChangePassword = localStorage.getItem('mustChangePassword') === 'true';
 
     if (storedAuth === 'true' && storedUsername && storedRole) {
+      const permissions = storedPermissions ? JSON.parse(storedPermissions) : [];
       setUser({ 
         username: storedUsername, 
         role: storedRole,
+        permissions,
         mustChangePassword 
       });
       setIsAuthenticated(true);
@@ -58,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newUser = { 
           username, 
           role: 'admin' as const,
+          permissions: DEFAULT_PERMISSIONS.admin,
           mustChangePassword: isDefaultCredentials 
         };
         
@@ -67,15 +86,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('username', username);
         localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('userPermissions', JSON.stringify(DEFAULT_PERMISSIONS.admin));
         localStorage.setItem('mustChangePassword', isDefaultCredentials.toString());
         
         return true;
       } else {
-        // تسجيل دخول المستخدم العادي (يمكن تطويره لاحقاً)
+        // تسجيل دخول المستخدم العادي مع صلاحيات محددة
         if (username && password) {
+          // تحديد الدور بناءً على اسم المستخدم أو يمكن إضافة منطق أكثر تعقيداً
+          let userRole = 'cashier'; // افتراضي
+          
+          // يمكن إضافة منطق لتحديد الدور بناءً على اسم المستخدم أو قاعدة البيانات
+          if (username.includes('manager')) {
+            userRole = 'manager';
+          } else if (username.includes('warehouse')) {
+            userRole = 'warehouse_keeper';
+          } else if (username.includes('accountant')) {
+            userRole = 'accountant';
+          }
+          
+          const permissions = DEFAULT_PERMISSIONS[userRole] || DEFAULT_PERMISSIONS.cashier;
+          
           const newUser = { 
             username, 
             role: 'user' as const,
+            permissions,
             mustChangePassword: false 
           };
           
@@ -85,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('username', username);
           localStorage.setItem('userRole', 'user');
+          localStorage.setItem('userPermissions', JSON.stringify(permissions));
           localStorage.setItem('mustChangePassword', 'false');
           
           return true;
@@ -129,7 +165,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userPermissions');
     localStorage.removeItem('mustChangePassword');
+  };
+
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'admin') return true; // المدير له كل الصلاحيات
+    return user.permissions.includes(permission);
   };
 
   const isAdmin = user?.role === 'admin';
@@ -143,7 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout, 
       isAdmin,
       updateAdminCredentials,
-      mustChangePassword
+      mustChangePassword,
+      hasPermission
     }}>
       {children}
     </AuthContext.Provider>

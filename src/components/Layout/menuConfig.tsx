@@ -29,7 +29,7 @@ export const menuItems = [
     label: 'نقطة البيع',
     labelEn: 'Point of Sale',
     color: 'from-emerald-500 to-teal-600',
-    permissions: ['pos_access', 'read']
+    permissions: ['pos_access']
   },
   {
     path: '/items',
@@ -37,7 +37,7 @@ export const menuItems = [
     label: 'إدارة الأصناف',
     labelEn: 'Items Management',
     color: 'from-green-500 to-teal-600',
-    permissions: ['read', 'manage_inventory']
+    permissions: ['manage_items']
   },
   {
     path: '/warehouses',
@@ -45,7 +45,7 @@ export const menuItems = [
     label: 'إدارة المخازن',
     labelEn: 'Warehouses',
     color: 'from-orange-500 to-red-600',
-    permissions: ['read', 'manage_warehouses']
+    permissions: ['manage_warehouses']
   },
   {
     path: '/transactions',
@@ -53,7 +53,7 @@ export const menuItems = [
     label: 'حركات المخزون',
     labelEn: 'Stock Transactions',
     color: 'from-purple-500 to-pink-600',
-    permissions: ['read', 'write']
+    permissions: ['manage_transactions']
   },
   {
     path: '/reports',
@@ -96,7 +96,7 @@ export const systemItems = [
     label: 'إدارة المستخدمين',
     labelEn: 'Users Management',
     adminOnly: false,
-    permissions: ['read']
+    permissions: ['manage_users']
   },
   {
     path: '/notifications',
@@ -111,6 +111,6 @@ export const systemItems = [
     icon: Settings,
     label: 'الإعدادات',
     labelEn: 'Settings',
-    permissions: ['read']
+    permissions: ['system_settings']
   },
 ];

@@ -33,6 +33,27 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Permission Protected Route component
+function PermissionProtectedRoute({ 
+  children, 
+  requiredPermission 
+}: { 
+  children: React.ReactNode;
+  requiredPermission: string;
+}) {
+  const { isAuthenticated, hasPermission, isAdmin } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!hasPermission(requiredPermission) && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
 // Admin Protected Route component
 function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -59,29 +80,29 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/items" element={
-        <ProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="manage_items">
           <ItemsPageWithSupabase />
-        </ProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/warehouses" element={
-        <ProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="manage_warehouses">
           <WarehousesPage />
-        </ProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/transactions" element={
-        <ProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="manage_transactions">
           <TransactionsPage />
-        </ProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/reports" element={
-        <ProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="view_reports">
           <ReportsPage />
-        </ProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/analytics" element={
-        <ProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="view_reports">
           <AnalyticsPage />
-        </ProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/scanner" element={
         <ProtectedRoute>
@@ -94,9 +115,9 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/users" element={
-        <AdminProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="manage_users">
           <UsersPage />
-        </AdminProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/notifications" element={
         <ProtectedRoute>
@@ -104,14 +125,14 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/settings" element={
-        <AdminProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="system_settings">
           <SettingsPage />
-        </AdminProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="/pos" element={
-        <ProtectedRoute>
+        <PermissionProtectedRoute requiredPermission="pos_access">
           <POSPage />
-        </ProtectedRoute>
+        </PermissionProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />
     </Routes>
