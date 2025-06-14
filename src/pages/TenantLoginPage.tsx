@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Mail, Lock, User } from 'lucide-react';
+import { Building2, Lock, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -17,17 +17,16 @@ export default function TenantLoginPage() {
 
   // Login form state
   const [loginData, setLoginData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
 
   // Signup form state
   const [signupData, setSignupData] = useState({
     tenantName: '',
-    email: '',
+    username: '',
     password: '',
-    confirmPassword: '',
-    username: ''
+    confirmPassword: ''
   });
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,45 +34,48 @@ export default function TenantLoginPage() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
-        password: loginData.password
-      });
-
-      if (error) {
-        if (error.message === 'Email not confirmed') {
-          toast({
-            title: "البريد الإلكتروني غير مؤكد",
-            description: "يرجى تأكيد بريدك الإلكتروني من خلال الرابط المرسل إليك",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "خطأ في تسجيل الدخول",
-            description: error.message === 'Invalid login credentials' 
-              ? "بيانات الدخول غير صحيحة" 
-              : error.message,
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      // Check if user is a tenant owner
+      // First, get the email associated with this username
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
         .select('*, tenants(*)')
-        .eq('user_id', data.user.id)
+        .eq('username', loginData.username)
         .eq('is_tenant_owner', true)
         .single();
 
       if (profileError || !profile) {
         toast({
-          title: "خطأ في الوصول",
-          description: "هذا الحساب غير مخول للوصول كمالك للنظام",
+          title: "خطأ في تسجيل الدخول",
+          description: "اسم المستخدم غير موجود",
           variant: "destructive",
         });
-        await supabase.auth.signOut();
+        return;
+      }
+
+      // Get the user's email from the tenants table
+      const userEmail = profile.tenants?.email;
+      if (!userEmail) {
+        toast({
+          title: "خطأ في تسجيل الدخول",
+          description: "لم يتم العثور على البريد الإلكتروني المرتبط بهذا الحساب",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Sign in with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: loginData.password
+      });
+
+      if (error) {
+        toast({
+          title: "خطأ في تسجيل الدخول",
+          description: error.message === 'Invalid login credentials' 
+            ? "اسم المستخدم أو كلمة المرور غير صحيحة" 
+            : error.message,
+          variant: "destructive",
+        });
         return;
       }
 
@@ -116,17 +118,35 @@ export default function TenantLoginPage() {
       return;
     }
 
+    // Check if username already exists
+    const { data: existingProfile } = await supabase
+      .from('tenant_profiles')
+      .select('username')
+      .eq('username', signupData.username)
+      .single();
+
+    if (existingProfile) {
+      toast({
+        title: "خطأ في إنشاء الحساب",
+        description: "اسم المستخدم مستخدم بالفعل",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       console.log('Starting tenant signup process...');
 
-      // Create the auth user with email confirmation
+      // Generate a unique email based on username
+      const generatedEmail = `${signupData.username}@tenant.local`;
+
+      // Create the auth user without email confirmation
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: signupData.email,
+        email: generatedEmail,
         password: signupData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
           data: {
             username: signupData.username,
             tenant_name: signupData.tenantName
@@ -138,9 +158,7 @@ export default function TenantLoginPage() {
         console.error('Auth signup error:', authError);
         toast({
           title: "خطأ في إنشاء الحساب",
-          description: authError.message === 'User already registered' 
-            ? "البريد الإلكتروني مستخدم بالفعل" 
-            : authError.message,
+          description: authError.message,
           variant: "destructive",
         });
         return;
@@ -155,38 +173,7 @@ export default function TenantLoginPage() {
         return;
       }
 
-      // If email confirmation is enabled, user needs to confirm email first
-      if (!authData.user.email_confirmed_at) {
-        toast({
-          title: "تحقق من بريدك الإلكتروني",
-          description: "تم إرسال رابط التأكيد إلى بريدك الإلكتروني. يرجى النقر على الرابط لتأكيد حسابك قبل تسجيل الدخول.",
-          variant: "default",
-        });
-
-        // Clear signup form and switch to login tab
-        setSignupData({
-          tenantName: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          username: ''
-        });
-
-        // Switch to login tab
-        const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
-        loginTab?.click();
-
-        // Pre-fill login email
-        setLoginData({
-          email: signupData.email,
-          password: ''
-        });
-
-        return;
-      }
-
-      // If email is already confirmed, proceed with creating tenant and profile
-      console.log('Auth user created and confirmed:', authData.user.id);
+      console.log('Auth user created:', authData.user.id);
 
       // Wait a moment for auth to be established
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -197,7 +184,7 @@ export default function TenantLoginPage() {
         .from('tenants')
         .insert([{
           name: signupData.tenantName,
-          email: signupData.email,
+          email: generatedEmail,
         }])
         .select()
         .single();
@@ -254,25 +241,24 @@ export default function TenantLoginPage() {
 
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "يمكنك الآن تسجيل الدخول باستخدام بياناتك",
+        description: "يمكنك الآن تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور",
       });
 
       // Switch to login tab
       const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
       loginTab?.click();
 
-      // Clear signup form and set login email
+      // Clear signup form and set login username
       setSignupData({
         tenantName: '',
-        email: '',
+        username: '',
         password: '',
-        confirmPassword: '',
-        username: ''
+        confirmPassword: ''
       });
 
-      // Pre-fill login email
+      // Pre-fill login username
       setLoginData({
-        email: signupData.email,
+        username: signupData.username,
         password: ''
       });
 
@@ -313,16 +299,16 @@ export default function TenantLoginPage() {
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Label htmlFor="username">اسم المستخدم</Label>
                   <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="أدخل البريد الإلكتروني"
+                      id="username"
+                      type="text"
+                      placeholder="أدخل اسم المستخدم"
                       className="pr-10"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                      value={loginData.username}
+                      onChange={(e) => setLoginData({...loginData, username: e.target.value})}
                       required
                     />
                   </div>
@@ -369,27 +355,11 @@ export default function TenantLoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signupEmail">البريد الإلكتروني</Label>
-                  <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="signupEmail"
-                      type="email"
-                      placeholder="أدخل البريد الإلكتروني"
-                      className="pr-10"
-                      value={signupData.email}
-                      onChange={(e) => setSignupData({...signupData, email: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="username">اسم المستخدم</Label>
+                  <Label htmlFor="signupUsername">اسم المستخدم</Label>
                   <div className="relative">
                     <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
-                      id="username"
+                      id="signupUsername"
                       type="text"
                       placeholder="أدخل اسم المستخدم"
                       className="pr-10"

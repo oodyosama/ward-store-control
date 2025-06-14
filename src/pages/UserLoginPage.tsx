@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Users, Lock, User, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,7 @@ export default function UserLoginPage() {
   const navigate = useNavigate();
 
   const [loginData, setLoginData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
 
@@ -24,23 +24,7 @@ export default function UserLoginPage() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
-        password: loginData.password
-      });
-
-      if (error) {
-        toast({
-          title: "خطأ في تسجيل الدخول",
-          description: error.message === 'Invalid login credentials' 
-            ? "بيانات الدخول غير صحيحة" 
-            : error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if user is a tenant user (not tenant owner)
+      // First, get the user profile and associated email
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
         .select(`
@@ -48,16 +32,44 @@ export default function UserLoginPage() {
           tenants(*),
           tenant_users(*)
         `)
-        .eq('user_id', data.user.id)
+        .eq('username', loginData.username)
+        .eq('is_tenant_owner', false)
         .single();
 
       if (profileError || !profile) {
         toast({
-          title: "خطأ في الوصول",
-          description: "هذا الحساب غير مخول للوصول للنظام",
+          title: "خطأ في تسجيل الدخول",
+          description: "اسم المستخدم غير موجود",
           variant: "destructive",
         });
-        await supabase.auth.signOut();
+        return;
+      }
+
+      // Get the user's email from the tenants table
+      const userEmail = profile.tenants?.email;
+      if (!userEmail) {
+        toast({
+          title: "خطأ في تسجيل الدخول",
+          description: "البريد الإلكتروني غير موجود",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Sign in with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: loginData.password
+      });
+
+      if (error) {
+        toast({
+          title: "خطأ في تسجيل الدخول",
+          description: error.message === 'Invalid login credentials' 
+            ? "اسم المستخدم أو كلمة المرور غير صحيحة" 
+            : error.message,
+          variant: "destructive",
+        });
         return;
       }
 
@@ -109,16 +121,16 @@ export default function UserLoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
+              <Label htmlFor="username">اسم المستخدم</Label>
               <div className="relative">
-                <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="أدخل البريد الإلكتروني"
+                  id="username"
+                  type="text"
+                  placeholder="أدخل اسم المستخدم"
                   className="pr-10"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                  value={loginData.username}
+                  onChange={(e) => setLoginData({...loginData, username: e.target.value})}
                   required
                 />
               </div>
