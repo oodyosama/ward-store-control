@@ -445,7 +445,7 @@ export default function TenantLoginPage() {
             <Button 
               variant="link" 
               onClick={() => navigate('/user-login')}
-              الأسرعassName="text-sm text-blue-600 hover:text-blue-800"
+              className="text-sm text-blue-600 hover:text-blue-800"
             >
               تسجيل دخول الموظفين والمستخدمين
             </Button>
