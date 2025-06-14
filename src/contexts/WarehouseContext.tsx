@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { User, Warehouse, Item, Transaction, Notification, DashboardStats } from '@/types/warehouse';
 
@@ -40,7 +41,7 @@ const mockWarehouses: Warehouse[] = [
   {
     id: 'warehouse-1',
     name: 'المخزن الرئيسي',
-    name_en: 'Main Warehouse',
+    nameEn: 'Main Warehouse',
     code: 'WH001',
     address: 'الرياض - حي الملك فهد',
     manager: 'أحمد محمد',
@@ -53,7 +54,7 @@ const mockWarehouses: Warehouse[] = [
   {
     id: 'warehouse-2', 
     name: 'مخزن الفرع الثاني',
-    name_en: 'Branch Warehouse',
+    nameEn: 'Branch Warehouse',
     code: 'WH002',
     address: 'جدة - حي الحمراء',
     manager: 'سعد العلي',
@@ -69,7 +70,7 @@ const mockItems: Item[] = [
   {
     id: 'item-1',
     name: 'جهاز كمبيوتر محمول',
-    name_en: 'Laptop Computer',
+    nameEn: 'Laptop Computer',
     sku: 'LAPTOP001',
     description: 'جهاز كمبيوتر محمول عالي الأداء',
     categoryId: 'cat-1',
@@ -86,7 +87,7 @@ const mockItems: Item[] = [
   {
     id: 'item-2',
     name: 'طابعة ليزر',
-    name_en: 'Laser Printer',
+    nameEn: 'Laser Printer',
     sku: 'PRINTER001',
     description: 'طابعة ليزر سريعة وموفرة',
     categoryId: 'cat-1',
@@ -165,7 +166,7 @@ const mockNotifications: Notification[] = [
     id: 'notif-1',
     title: 'مستوى مخزون منخفض',
     message: 'مستوى مخزون طابعة ليزر أقل من الحد الأدنى',
-    type: 'warning',
+    type: 'low_stock',
     priority: 'medium',
     isRead: false,
     userId: 'default-user',
@@ -175,7 +176,7 @@ const mockNotifications: Notification[] = [
     id: 'notif-2',
     title: 'حركة وارد جديدة',
     message: 'تم استلام دفعة جديدة من أجهزة الكمبيوتر المحمولة',
-    type: 'success',
+    type: 'system',
     priority: 'low',
     isRead: false,
     userId: 'default-user',
@@ -209,6 +210,7 @@ const initialState: WarehouseState = {
     }).length,
     expiringItems: 0,
     pendingTransactions: mockTransactions.filter(t => t.status === 'pending').length,
+    recentTransactions: mockTransactions.slice(0, 10),
     topMovingItems: mockItems.slice(0, 5).map(item => ({
       item,
       totalMovement: Math.floor(Math.random() * 50) + 10
@@ -278,6 +280,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({ children }
           return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
         }).length,
         pendingTransactions: state.transactions.filter(t => t.status === 'pending').length,
+        recentTransactions: state.transactions.slice(0, 10),
         topMovingItems: state.items.slice(0, 5).map(item => {
           const movements = state.transactions.filter(t => t.itemId === item.id).length;
           return {
