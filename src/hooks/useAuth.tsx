@@ -4,6 +4,7 @@ import { useState, useEffect, useContext, createContext, ReactNode } from 'react
 interface User {
   username: string;
   role: 'admin' | 'user';
+  mustChangePassword?: boolean;
 }
 
 interface AuthContextType {
@@ -12,6 +13,8 @@ interface AuthContextType {
   login: (username: string, role: 'admin' | 'user') => void;
   logout: () => void;
   isAdmin: boolean;
+  updateAdminCredentials: (newUsername: string, newPassword: string) => void;
+  mustChangePassword: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,21 +28,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedAuth = localStorage.getItem('isAuthenticated');
     const storedUsername = localStorage.getItem('username');
     const storedRole = localStorage.getItem('userRole') as 'admin' | 'user';
+    const mustChangePassword = localStorage.getItem('mustChangePassword') === 'true';
 
     if (storedAuth === 'true' && storedUsername && storedRole) {
-      setUser({ username: storedUsername, role: storedRole });
+      setUser({ 
+        username: storedUsername, 
+        role: storedRole,
+        mustChangePassword 
+      });
       setIsAuthenticated(true);
     }
   }, []);
 
   const login = (username: string, role: 'admin' | 'user') => {
-    const newUser = { username, role };
+    // Check if admin is using default credentials
+    const isDefaultAdmin = role === 'admin' && username === 'admin';
+    const mustChangePassword = isDefaultAdmin;
+
+    const newUser = { 
+      username, 
+      role,
+      mustChangePassword 
+    };
+    
     setUser(newUser);
     setIsAuthenticated(true);
     
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('username', username);
     localStorage.setItem('userRole', role);
+    localStorage.setItem('mustChangePassword', mustChangePassword.toString());
+  };
+
+  const updateAdminCredentials = (newUsername: string, newPassword: string) => {
+    if (user?.role === 'admin') {
+      const updatedUser = {
+        ...user,
+        username: newUsername,
+        mustChangePassword: false
+      };
+      
+      setUser(updatedUser);
+      
+      // Update localStorage with new credentials
+      localStorage.setItem('username', newUsername);
+      localStorage.setItem('adminPassword', newPassword);
+      localStorage.setItem('mustChangePassword', 'false');
+      
+      console.log('Admin credentials updated successfully');
+    }
   };
 
   const logout = () => {
@@ -49,12 +86,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('mustChangePassword');
+    localStorage.removeItem('adminPassword');
   };
 
   const isAdmin = user?.role === 'admin';
+  const mustChangePassword = user?.mustChangePassword || false;
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      login, 
+      logout, 
+      isAdmin,
+      updateAdminCredentials,
+      mustChangePassword
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,22 +8,24 @@ import { LogIn, User, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import ChangePasswordDialog from '@/components/Auth/ChangePasswordDialog';
 
 export default function LoginPage() {
   const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, updateAdminCredentials, mustChangePassword } = useAuth();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated and doesn't need password change
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !mustChangePassword) {
       navigate('/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, mustChangePassword, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,16 +33,24 @@ export default function LoginPage() {
 
     try {
       if (isAdminLogin) {
-        // Admin login
-        if (username === 'admin' && password === 'admin') {
-          login('admin', 'admin');
+        // Check if using current admin credentials (default or updated)
+        const storedAdminPassword = localStorage.getItem('adminPassword');
+        const validPassword = storedAdminPassword || 'admin';
+        const storedUsername = localStorage.getItem('username');
+        const validUsername = (storedUsername && localStorage.getItem('userRole') === 'admin') ? storedUsername : 'admin';
+
+        if (username === validUsername && password === validPassword) {
+          login(username, 'admin');
           
           toast({
             title: "تم تسجيل الدخول بنجاح",
             description: "مرحباً بك مدير النظام",
           });
           
-          navigate('/');
+          // Don't navigate if password change is required
+          if (!mustChangePassword) {
+            navigate('/');
+          }
         } else {
           toast({
             title: "خطأ في تسجيل الدخول",
@@ -50,8 +60,6 @@ export default function LoginPage() {
         }
       } else {
         // User login - check against database
-        // For now, we'll use simple validation
-        // In a real app, this would check against Supabase auth
         if (username && password) {
           login(username, 'user');
           
@@ -79,6 +87,44 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const handlePasswordChange = async (newUsername: string, newPassword: string) => {
+    setIsChangingPassword(true);
+    
+    try {
+      // Update admin credentials
+      updateAdminCredentials(newUsername, newPassword);
+      
+      toast({
+        title: "تم تحديث البيانات بنجاح",
+        description: "تم تحديث اسم المستخدم وكلمة المرور بنجاح",
+      });
+      
+      // Navigate to dashboard after successful password change
+      navigate('/');
+    } catch (error) {
+      toast({
+        title: "خطأ في تحديث البيانات",
+        description: "حدث خطأ أثناء تحديث البيانات",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  // Show password change dialog if admin must change password
+  if (isAuthenticated && mustChangePassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
+        <ChangePasswordDialog
+          isOpen={true}
+          onPasswordChanged={handlePasswordChange}
+          isLoading={isChangingPassword}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
@@ -134,7 +180,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={isAdminLogin ? "admin" : "أدخل اسم المستخدم"}
+                placeholder={isAdminLogin ? "أدخل اسم المستخدم الحالي" : "أدخل اسم المستخدم"}
                 className="text-right"
                 required
               />
@@ -149,7 +195,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isAdminLogin ? "admin" : "أدخل كلمة المرور"}
+                placeholder={isAdminLogin ? "أدخل كلمة المرور الحالية" : "أدخل كلمة المرور"}
                 className="text-right"
                 required
               />
@@ -168,7 +214,7 @@ export default function LoginPage() {
           {isAdminLogin && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800 text-center">
-                <strong>للمدير:</strong> اسم المستخدم: admin، كلمة المرور: admin
+                <strong>للمدير:</strong> ستحتاج لتغيير البيانات الافتراضية عند أول تسجيل دخول
               </p>
             </div>
           )}
