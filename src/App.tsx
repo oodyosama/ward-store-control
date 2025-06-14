@@ -20,6 +20,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import POSPage from "./pages/POSPage";
 import TenantLoginPage from "./pages/TenantLoginPage";
+import TenantSignupPage from "./pages/TenantSignupPage";
 import UserLoginPage from "./pages/UserLoginPage";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +44,7 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<TenantLoginPage />} />
+                <Route path="/tenant-signup" element={<TenantSignupPage />} />
                 <Route path="/user-login" element={<UserLoginPage />} />
                 <Route path="/" element={<Index />} />
                 <Route path="/items" element={<ItemsPageWithSupabase />} />

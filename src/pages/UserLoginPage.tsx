@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Lock, User, ArrowLeft } from 'lucide-react';
+import { Users, Lock, User, ArrowLeft, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -129,7 +128,7 @@ export default function UserLoginPage() {
             دخول المستخدمين
           </CardTitle>
           <p className="text-gray-600 mt-2">
-            تسجيل دخول الموظفين والمدراء
+            تسجيل دخول الموظفين والمدراء التابعين للمؤسسة
           </p>
         </CardHeader>
 
@@ -180,7 +179,7 @@ export default function UserLoginPage() {
               onClick={() => navigate('/login')}
               className="flex items-center gap-2"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <Building2 className="w-4 h-4" />
               دخول المؤسسات
             </Button>
             

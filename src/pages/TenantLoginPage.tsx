@@ -2,21 +2,14 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import { TenantLoginHeader } from '@/components/Auth/TenantLoginHeader';
 import { TenantLoginForm } from '@/components/Auth/TenantLoginForm';
-import { TenantSignupForm } from '@/components/Auth/TenantSignupForm';
 
 export default function TenantLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
-
-  const handleSignupSuccess = (username: string) => {
-    // Switch to login tab and pre-fill username
-    setActiveTab("login");
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -24,33 +17,32 @@ export default function TenantLoginPage() {
         <TenantLoginHeader />
 
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">تسجيل الدخول</TabsTrigger>
-              <TabsTrigger value="signup">إنشاء حساب جديد</TabsTrigger>
-            </TabsList>
+          <TenantLoginForm isLoading={isLoading} setIsLoading={setIsLoading} />
 
-            <TabsContent value="login">
-              <TenantLoginForm isLoading={isLoading} setIsLoading={setIsLoading} />
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <TenantSignupForm 
-                isLoading={isLoading} 
-                setIsLoading={setIsLoading}
-                onSignupSuccess={handleSignupSuccess}
-              />
-            </TabsContent>
-          </Tabs>
-
-          <div className="mt-6 text-center">
-            <Button 
-              variant="link" 
-              onClick={() => navigate('/user-login')}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              تسجيل دخول الموظفين والمستخدمين
-            </Button>
+          <div className="mt-6 space-y-4">
+            <div className="text-center">
+              <Button 
+                variant="link" 
+                onClick={() => navigate('/user-login')}
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-2 mx-auto"
+              >
+                <Users className="w-4 h-4" />
+                تسجيل دخول الموظفين والمستخدمين
+              </Button>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                ليس لديك حساب مؤسسة؟ 
+                <Button 
+                  variant="link" 
+                  onClick={() => navigate('/tenant-signup')}
+                  className="text-sm text-blue-600 hover:text-blue-800 p-0 ml-1"
+                >
+                  إنشاء حساب جديد
+                </Button>
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
