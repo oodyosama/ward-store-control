@@ -121,6 +121,159 @@ export default function POSPage() {
     }
   };
 
+  const handlePrintReceipt = () => {
+    if (cart.length === 0) {
+      toast({
+        title: "سلة فارغة",
+        description: "لا يوجد عناصر للطباعة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a printable receipt
+    const receiptContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <title>فاتورة البيع</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+            margin: 20px;
+            font-size: 14px;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+          }
+          .company-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .receipt-info {
+            margin-bottom: 20px;
+          }
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          .items-table th,
+          .items-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: right;
+          }
+          .items-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+          }
+          .total-section {
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            text-align: right;
+          }
+          .total-amount {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+            font-size: 12px;
+          }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">نظام المخازن - نقطة البيع</div>
+          <div>فاتورة مبيعات</div>
+        </div>
+        
+        <div class="receipt-info">
+          <div><strong>التاريخ:</strong> ${new Date().toLocaleDateString('ar-SA')}</div>
+          <div><strong>الوقت:</strong> ${new Date().toLocaleTimeString('ar-SA')}</div>
+          <div><strong>رقم الفاتورة:</strong> ${Date.now()}</div>
+        </div>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>الصنف</th>
+              <th>الكمية</th>
+              <th>السعر</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cart.map(item => `
+              <tr>
+                <td>${item.name}</td>
+                <td>${item.quantity}</td>
+                <td>${item.price.toFixed(2)} ريال</td>
+                <td>${(item.price * item.quantity).toFixed(2)} ريال</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="total-section">
+          <div class="total-amount">
+            <strong>المجموع الكلي: ${getTotalAmount().toFixed(2)} ريال</strong>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div>شكراً لتسوقكم معنا</div>
+          <div>نظام المخازن - الإصدار 1.0</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open print window
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(receiptContent);
+      printWindow.document.close();
+      
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        printWindow.print();
+        
+        // Close window after printing or if user cancels
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+      };
+
+      toast({
+        title: "جاري التحضير للطباعة",
+        description: "سيتم فتح شاشة الطباعة قريباً",
+      });
+    } else {
+      toast({
+        title: "خطأ في الطباعة",
+        description: "لم يتم فتح نافذة الطباعة. تأكد من السماح بالنوافذ المنبثقة",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -290,12 +443,7 @@ export default function POSPage() {
                     <Button 
                       variant="outline" 
                       className="w-full flex items-center gap-2"
-                      onClick={() => {
-                        toast({
-                          title: "فاتورة مطبوعة",
-                          description: "تم طباعة الفاتورة بنجاح",
-                        });
-                      }}
+                      onClick={handlePrintReceipt}
                     >
                       <Receipt className="w-4 h-4" />
                       طباعة فاتورة
