@@ -54,45 +54,62 @@ export function useAddUser() {
   const addUser = async (userData: {
     username: string;
     email: string;
+    password: string;
     role: User['role'];
+    permissions: string[];
     isActive: boolean;
   }) => {
     try {
-      // Generate permissions based on role
-      const getPermissionsByRole = (role: User['role']): string[] => {
-        switch (role) {
-          case 'admin':
-            return ['read', 'write', 'delete', 'manage_users', 'manage_inventory'];
-          case 'manager':
-            return ['read', 'write', 'manage_inventory'];
-          case 'warehouse_keeper':
-            return ['read', 'write'];
-          case 'accountant':
-            return ['read'];
-          default:
-            return ['read'];
+      // Create user with email and password in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            username: userData.username,
+            role: userData.role
+          }
         }
-      };
+      });
 
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        toast({
+          title: "خطأ في إنشاء المستخدم",
+          description: authError.message === 'User already registered' 
+            ? "البريد الإلكتروني مستخدم بالفعل" 
+            : "حدث خطأ أثناء إنشاء حساب المستخدم.",
+          variant: "destructive",
+        });
+        return { success: false };
+      }
+
+      // Insert user data into our users table
       const { data, error } = await supabase
         .from('users')
         .insert([{
+          id: authData.user?.id,
           username: userData.username,
           email: userData.email,
           role: userData.role,
-          permissions: getPermissionsByRole(userData.role),
+          permissions: userData.permissions,
           is_active: userData.isActive,
         }])
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding user:', error);
+        console.error('Error adding user to database:', error);
+        
+        // If database insert fails, we should clean up the auth user
+        if (authData.user) {
+          // Note: In production, you might want to handle this differently
+          console.warn('Auth user created but database insert failed. Manual cleanup may be needed.');
+        }
+        
         toast({
-          title: "خطأ في إضافة المستخدم",
-          description: error.message === 'duplicate key value violates unique constraint "users_email_key"' 
-            ? "البريد الإلكتروني مستخدم بالفعل" 
-            : "حدث خطأ أثناء إضافة المستخدم. يرجى المحاولة مرة أخرى.",
+          title: "خطأ في حفظ بيانات المستخدم",
+          description: "تم إنشاء الحساب ولكن فشل في حفظ البيانات. يرجى المحاولة مرة أخرى.",
           variant: "destructive",
         });
         return { success: false };

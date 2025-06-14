@@ -14,30 +14,21 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [newUser, setNewUser] = useState({
-    username: '',
-    email: '',
-    role: 'warehouse_keeper' as User['role'],
-    isActive: true
-  });
 
-  const handleAddUser = async () => {
-    if (!newUser.username.trim() || !newUser.email.trim()) {
-      return;
-    }
-
+  const handleAddUser = async (userData: {
+    username: string;
+    email: string;
+    password: string;
+    role: User['role'];
+    permissions: string[];
+    isActive: boolean;
+  }) => {
     setIsLoading(true);
     
-    const result = await addUser(newUser);
+    const result = await addUser(userData);
     
     if (result.success) {
       setIsAddUserOpen(false);
-      setNewUser({
-        username: '',
-        email: '',
-        role: 'warehouse_keeper',
-        isActive: true
-      });
       // Refresh the users list
       refetch();
     }
@@ -62,8 +53,6 @@ export default function UsersPage() {
           isAddUserOpen={isAddUserOpen}
           setIsAddUserOpen={setIsAddUserOpen}
           isLoading={isLoading}
-          newUser={newUser}
-          setNewUser={setNewUser}
           handleAddUser={handleAddUser}
         />
 
