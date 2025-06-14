@@ -2,6 +2,7 @@
 import React from 'react';
 import { Package, Warehouse, TrendingUp, AlertTriangle, DollarSign, Activity, Users, Calendar } from 'lucide-react';
 import { useWarehouse } from '@/contexts/WarehouseContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const { state } = useWarehouse();
+  const { user } = useAuth();
   const { dashboardStats, recentTransactions, notifications } = state;
   const navigate = useNavigate();
 
@@ -93,7 +95,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              مرحباً، {state.currentUser?.username}
+              مرحباً، {user?.username || 'مستخدم'}
             </h1>
             <p className="text-blue-100 text-sm md:text-base">
               إليك نظرة سريعة على حالة المخازن اليوم
@@ -258,7 +260,7 @@ export default function Dashboard() {
       {/* إجراءات سريعة */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">إجراءات سريعة</CardTitle>
+          <CardTitle className="text-lg font-semibold">إجراءات سريعة</CodeTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
