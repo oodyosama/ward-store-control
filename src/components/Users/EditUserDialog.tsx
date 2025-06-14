@@ -42,7 +42,7 @@ export default function EditUserDialog({
     username: user?.username || '',
     email: user?.email || '',
     role: user?.role || 'warehouse_keeper' as User['role'],
-    isActive: user?.isActive || true,
+    isActive: user?.isActive ?? true,
   });
 
   React.useEffect(() => {
