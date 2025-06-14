@@ -5,7 +5,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  role: 'admin' | 'manager' | 'warehouse_keeper' | 'accountant';
+  role: 'admin' | 'manager' | 'warehouse_keeper' | 'accountant' | 'cashier';
   permissions: string[];
   isActive: boolean;
   createdAt: Date;

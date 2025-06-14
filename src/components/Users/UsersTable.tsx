@@ -69,6 +69,8 @@ export default function UsersTable({
         return 'secondary';
       case 'accountant':
         return 'outline';
+      case 'cashier':
+        return 'outline';
       default:
         return 'outline';
     }
@@ -84,6 +86,8 @@ export default function UsersTable({
         return 'أمين مخزن';
       case 'accountant':
         return 'محاسب';
+      case 'cashier':
+        return 'كاشير';
       default:
         return role;
     }
@@ -119,6 +123,7 @@ export default function UsersTable({
               <SelectItem value="manager">مدير</SelectItem>
               <SelectItem value="warehouse_keeper">أمين مخزن</SelectItem>
               <SelectItem value="accountant">محاسب</SelectItem>
+              <SelectItem value="cashier">كاشير</SelectItem>
             </SelectContent>
           </Select>
         </div>

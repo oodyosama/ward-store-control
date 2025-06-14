@@ -13,7 +13,8 @@ import {
   BarChart3,
   Scan,
   Calendar,
-  Archive
+  Archive,
+  CreditCard
 } from 'lucide-react';
 import { useWarehouse } from '@/contexts/WarehouseContext';
 import { Badge } from '@/components/ui/badge';
@@ -29,56 +30,72 @@ const menuItems = [
     icon: LayoutDashboard,
     label: 'لوحة التحكم',
     labelEn: 'Dashboard',
-    color: 'from-blue-500 to-purple-600'
+    color: 'from-blue-500 to-purple-600',
+    permissions: ['read']
+  },
+  {
+    path: '/pos',
+    icon: CreditCard,
+    label: 'نقطة البيع',
+    labelEn: 'Point of Sale',
+    color: 'from-emerald-500 to-teal-600',
+    permissions: ['pos_access']
   },
   {
     path: '/items',
     icon: Package,
     label: 'إدارة الأصناف',
     labelEn: 'Items Management',
-    color: 'from-green-500 to-teal-600'
+    color: 'from-green-500 to-teal-600',
+    permissions: ['read', 'manage_inventory']
   },
   {
     path: '/warehouses',
     icon: Warehouse,
     label: 'إدارة المخازن',
     labelEn: 'Warehouses',
-    color: 'from-orange-500 to-red-600'
+    color: 'from-orange-500 to-red-600',
+    permissions: ['read', 'manage_warehouses']
   },
   {
     path: '/transactions',
     icon: ArrowDownUp,
     label: 'حركات المخزون',
     labelEn: 'Stock Transactions',
-    color: 'from-purple-500 to-pink-600'
+    color: 'from-purple-500 to-pink-600',
+    permissions: ['read', 'write']
   },
   {
     path: '/reports',
     icon: FileText,
     label: 'التقارير',
     labelEn: 'Reports',
-    color: 'from-indigo-500 to-blue-600'
+    color: 'from-indigo-500 to-blue-600',
+    permissions: ['view_reports']
   },
   {
     path: '/analytics',
     icon: BarChart3,
     label: 'التحليلات',
     labelEn: 'Analytics',
-    color: 'from-teal-500 to-green-600'
+    color: 'from-teal-500 to-green-600',
+    permissions: ['view_reports']
   },
   {
     path: '/scanner',
     icon: Scan,
     label: 'ماسح الباركود',
     labelEn: 'Barcode Scanner',
-    color: 'from-yellow-500 to-orange-600'
+    color: 'from-yellow-500 to-orange-600',
+    permissions: ['read']
   },
   {
     path: '/archive',
     icon: Archive,
     label: 'الأرشيف',
     labelEn: 'Archive',
-    color: 'from-gray-500 to-gray-600'
+    color: 'from-gray-500 to-gray-600',
+    permissions: ['read']
   },
 ];
 
@@ -88,20 +105,23 @@ const systemItems = [
     icon: Users,
     label: 'إدارة المستخدمين',
     labelEn: 'Users Management',
-    adminOnly: true
+    adminOnly: true,
+    permissions: ['manage_users']
   },
   {
     path: '/notifications',
     icon: Bell,
     label: 'الإشعارات',
     labelEn: 'Notifications',
-    badge: true
+    badge: true,
+    permissions: ['read']
   },
   {
     path: '/settings',
     icon: Settings,
     label: 'الإعدادات',
-    labelEn: 'Settings'
+    labelEn: 'Settings',
+    permissions: ['read']
   },
 ];
 
@@ -110,6 +130,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const unreadNotifications = state.notifications.filter(n => !n.isRead).length;
 
   const isAdmin = state.currentUser?.role === 'admin';
+  const userPermissions = state.currentUser?.permissions || [];
+
+  const hasPermission = (requiredPermissions: string[]) => {
+    return requiredPermissions.some(permission => userPermissions.includes(permission));
+  };
 
   const handleLinkClick = () => {
     // إغلاق القائمة في الجوال عند النقر على رابط
@@ -117,6 +142,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       onClose();
     }
   };
+
+  // Filter menu items based on user permissions
+  const filteredMenuItems = menuItems.filter(item => 
+    hasPermission(item.permissions)
+  );
+
+  const filteredSystemItems = systemItems.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    return hasPermission(item.permissions);
+  });
 
   return (
     <>
@@ -157,95 +192,96 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* القائمة الرئيسية */}
         <div className="flex-1 overflow-y-auto py-6">
           <nav className="px-4 space-y-2">
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-3">
-                القائمة الرئيسية
-              </h3>
-              
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleLinkClick}
-                    className={({ isActive }) =>
-                      `group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                        isActive
-                          ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg transform scale-[1.02]'
-                          : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <Icon className={`w-5 h-5 ml-3 transition-colors ${
-                          isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-500'
-                        }`} />
-                        <div className="flex-1 text-right">
-                          <div className={`${isActive ? 'text-white' : ''}`}>
-                            {item.label}
+            {filteredMenuItems.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-3">
+                  القائمة الرئيسية
+                </h3>
+                
+                {filteredMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={handleLinkClick}
+                      className={({ isActive }) =>
+                        `group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          isActive
+                            ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg transform scale-[1.02]'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon className={`w-5 h-5 ml-3 transition-colors ${
+                            isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-500'
+                          }`} />
+                          <div className="flex-1 text-right">
+                            <div className={`${isActive ? 'text-white' : ''}`}>
+                              {item.label}
+                            </div>
+                            <div className={`text-xs ${
+                              isActive ? 'text-gray-100' : 'text-gray-400'
+                            }`}>
+                              {item.labelEn}
+                            </div>
                           </div>
-                          <div className={`text-xs ${
-                            isActive ? 'text-gray-100' : 'text-gray-400'
-                          }`}>
-                            {item.labelEn}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </NavLink>
-                );
-              })}
-            </div>
+                        </>
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
 
             {/* قائمة النظام */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-3">
-                النظام
-              </h3>
-              
-              {systemItems.map((item) => {
-                // تخطي العناصر المخصصة للمدير إذا لم يكن المستخدم مديراً
-                if (item.adminOnly && !isAdmin) return null;
+            {filteredSystemItems.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-3">
+                  النظام
+                </h3>
+                
+                {filteredSystemItems.map((item) => {
+                  const Icon = item.icon;
+                  const showBadge = item.badge && item.path === '/notifications' && unreadNotifications > 0;
 
-                const Icon = item.icon;
-                const showBadge = item.badge && item.path === '/notifications' && unreadNotifications > 0;
-
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleLinkClick}
-                    className={({ isActive }) =>
-                      `group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                        isActive
-                          ? 'bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400'
-                          : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                      }`
-                    }
-                  >
-                    <>
-                      <div className="relative">
-                        <Icon className="w-5 h-5 ml-3" />
-                        {showBadge && (
-                          <Badge
-                            variant="destructive"
-                            className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0"
-                          >
-                            {unreadNotifications}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex-1 text-right">
-                        <div>{item.label}</div>
-                        <div className="text-xs text-gray-400">{item.labelEn}</div>
-                      </div>
-                    </>
-                  </NavLink>
-                );
-              })}
-            </div>
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={handleLinkClick}
+                      className={({ isActive }) =>
+                        `group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          isActive
+                            ? 'bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      <>
+                        <div className="relative">
+                          <Icon className="w-5 h-5 ml-3" />
+                          {showBadge && (
+                            <Badge
+                              variant="destructive"
+                              className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0"
+                            >
+                              {unreadNotifications}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex-1 text-right">
+                          <div>{item.label}</div>
+                          <div className="text-xs text-gray-400">{item.labelEn}</div>
+                        </div>
+                      </>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
           </nav>
         </div>
 
@@ -263,7 +299,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {state.currentUser?.role === 'admin' ? 'مدير النظام' :
                  state.currentUser?.role === 'manager' ? 'مدير' :
                  state.currentUser?.role === 'warehouse_keeper' ? 'أمين مخزن' :
-                 'محاسب'}
+                 state.currentUser?.role === 'accountant' ? 'محاسب' :
+                 state.currentUser?.role === 'cashier' ? 'كاشير' :
+                 'مستخدم'}
               </p>
             </div>
           </div>

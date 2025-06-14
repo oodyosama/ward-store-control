@@ -43,14 +43,16 @@ const AVAILABLE_PERMISSIONS = [
   { id: 'manage_inventory', label: 'إدارة المخزون', description: 'إدارة المخزون والمواد' },
   { id: 'manage_warehouses', label: 'إدارة المخازن', description: 'إضافة وتعديل المخازن' },
   { id: 'view_reports', label: 'عرض التقارير', description: 'الوصول إلى التقارير' },
-  { id: 'export_data', label: 'تصدير البيانات', description: 'تصدير البيانات كـ Excel/PDF' }
+  { id: 'export_data', label: 'تصدير البيانات', description: 'تصدير البيانات كـ Excel/PDF' },
+  { id: 'pos_access', label: 'الوصول لنقطة البيع', description: 'استخدام نظام نقطة البيع' }
 ];
 
 const ROLE_PERMISSIONS = {
-  admin: ['read', 'write', 'delete', 'manage_users', 'manage_inventory', 'manage_warehouses', 'view_reports', 'export_data'],
-  manager: ['read', 'write', 'manage_inventory', 'manage_warehouses', 'view_reports', 'export_data'],
+  admin: ['read', 'write', 'delete', 'manage_users', 'manage_inventory', 'manage_warehouses', 'view_reports', 'export_data', 'pos_access'],
+  manager: ['read', 'write', 'manage_inventory', 'manage_warehouses', 'view_reports', 'export_data', 'pos_access'],
   warehouse_keeper: ['read', 'write', 'view_reports'],
-  accountant: ['read', 'view_reports', 'export_data']
+  accountant: ['read', 'view_reports', 'export_data'],
+  cashier: ['pos_access'] // Only POS access for cashiers
 };
 
 export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }: AddUserDialogProps) {
@@ -199,6 +201,7 @@ export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }:
                 <SelectItem value="manager">مدير</SelectItem>
                 <SelectItem value="warehouse_keeper">أمين مخزن</SelectItem>
                 <SelectItem value="accountant">محاسب</SelectItem>
+                <SelectItem value="cashier">كاشير</SelectItem>
               </SelectContent>
             </Select>
           </div>
