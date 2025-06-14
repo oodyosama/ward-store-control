@@ -25,7 +25,10 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('handleLogin started, current isLoading:', isLoading);
+    
     if (!loginData.username || !loginData.password) {
+      console.log('Validation failed - missing username or password');
       toast({
         title: "خطأ في البيانات",
         description: "يرجى إدخال اسم المستخدم وكلمة المرور",
@@ -34,6 +37,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
       return;
     }
 
+    console.log('Setting isLoading to true');
     setIsLoading(true);
 
     try {
@@ -52,12 +56,13 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
 
       if (profileError || !profile) {
         console.error('خطأ في العثور على المستخدم:', profileError);
+        console.log('Setting isLoading to false - profile not found');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود أو غير صحيح",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
@@ -76,6 +81,8 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
 
       if (authError) {
         console.error('خطأ في المصادقة:', authError);
+        console.log('Setting isLoading to false - auth error');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: authError.message === 'Invalid login credentials' 
@@ -83,7 +90,6 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
             : "حدث خطأ في تسجيل الدخول",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
@@ -94,19 +100,21 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         description: `مرحباً ${profile.username}`,
       });
 
+      console.log('Navigating to dashboard');
       // الانتقال إلى لوحة التحكم
       navigate('/dashboard');
       
-      // إيقاف حالة التحميل بعد التنقل الناجح
+      console.log('Setting isLoading to false - success');
       setIsLoading(false);
     } catch (error) {
       console.error('خطأ عام في تسجيل الدخول:', error);
+      console.log('Setting isLoading to false - catch block');
+      setIsLoading(false);
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
-      setIsLoading(false);
     }
   };
 

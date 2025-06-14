@@ -22,7 +22,10 @@ export default function UserLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('UserLogin handleLogin started, current isLoading:', isLoading);
+    
     if (!loginData.username || !loginData.password) {
+      console.log('UserLogin validation failed - missing username or password');
       toast({
         title: "خطأ في البيانات",
         description: "يرجى إدخال اسم المستخدم وكلمة المرور",
@@ -31,6 +34,7 @@ export default function UserLoginPage() {
       return;
     }
 
+    console.log('UserLogin setting isLoading to true');
     setIsLoading(true);
 
     try {
@@ -50,24 +54,26 @@ export default function UserLoginPage() {
 
       if (profileError || !profile) {
         console.error('خطأ في العثور على المستخدم:', profileError);
+        console.log('UserLogin setting isLoading to false - profile not found');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
       // الحصول على البريد الإلكتروني من جدول المؤسسات
       const userEmail = profile.tenants?.email;
       if (!userEmail) {
+        console.log('UserLogin setting isLoading to false - no email');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "البريد الإلكتروني غير موجود",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
@@ -79,6 +85,8 @@ export default function UserLoginPage() {
 
       if (error) {
         console.error('خطأ في المصادقة:', error);
+        console.log('UserLogin setting isLoading to false - auth error');
+        setIsLoading(false);
         toast({
           title: "خطأ في تسجيل الدخول",
           description: error.message === 'Invalid login credentials' 
@@ -86,20 +94,20 @@ export default function UserLoginPage() {
             : error.message,
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
       // التحقق من أن المستخدم نشط
       const tenantUser = Array.isArray(profile.tenant_users) ? profile.tenant_users[0] : null;
       if (!tenantUser || !tenantUser.is_active) {
+        console.log('UserLogin setting isLoading to false - inactive user');
+        setIsLoading(false);
         toast({
           title: "حساب معطل",
           description: "تم تعطيل حسابك. يرجى مراجعة المسؤول",
           variant: "destructive",
         });
         await supabase.auth.signOut();
-        setIsLoading(false);
         return;
       }
 
@@ -108,16 +116,19 @@ export default function UserLoginPage() {
         description: `مرحباً ${profile.username}`,
       });
 
+      console.log('UserLogin navigating to dashboard');
       navigate('/dashboard');
+      console.log('UserLogin setting isLoading to false - success');
       setIsLoading(false);
     } catch (error) {
       console.error('خطأ عام في تسجيل الدخول:', error);
+      console.log('UserLogin setting isLoading to false - catch block');
+      setIsLoading(false);
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع",
         variant: "destructive",
       });
-      setIsLoading(false);
     }
   };
 
