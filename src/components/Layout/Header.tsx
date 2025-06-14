@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Bell, Search, User, Menu, X, LogOut } from 'lucide-react';
 import { useWarehouse } from '@/contexts/WarehouseContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -20,9 +22,33 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
   const { state } = useWarehouse();
+  const { user, logout, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   const unreadNotifications = state.notifications.filter(n => !n.isRead).length;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'مدير النظام';
+      case 'manager':
+        return 'مدير';
+      case 'warehouse_keeper':
+        return 'أمين مخزن';
+      case 'accountant':
+        return 'محاسب';
+      case 'cashier':
+        return 'كاشير';
+      default:
+        return 'مستخدم';
+    }
+  };
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
@@ -127,16 +153,15 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4" />
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    isAdmin ? 'bg-red-500' : 'bg-blue-500'
+                  }`}>
+                    <User className="w-4 h-4 text-white" />
                   </div>
                   <div className="hidden sm:block text-right">
-                    <p className="text-sm font-medium">{state.currentUser?.username}</p>
+                    <p className="text-sm font-medium">{user?.username}</p>
                     <p className="text-xs text-gray-500">
-                      {state.currentUser?.role === 'admin' ? 'مدير النظام' :
-                       state.currentUser?.role === 'manager' ? 'مدير' :
-                       state.currentUser?.role === 'warehouse_keeper' ? 'أمين مخزن' :
-                       'محاسب'}
+                      {getRoleDisplayName(user?.role || 'user')}
                     </p>
                   </div>
                 </Button>
@@ -146,11 +171,16 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
                   <User className="mr-2 h-4 w-4" />
                   الملف الشخصي
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-right">
-                  إعدادات النظام
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem className="text-right">
+                    إعدادات النظام
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-right text-red-600">
+                <DropdownMenuItem 
+                  className="text-right text-red-600 cursor-pointer"
+                  onClick={handleLogout}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   تسجيل الخروج
                 </DropdownMenuItem>
