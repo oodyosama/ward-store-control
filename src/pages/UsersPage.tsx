@@ -18,8 +18,9 @@ export default function UsersPage() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isAdmin = state.currentUser?.role === 'admin';
-  const hasManageUsersPermission = state.currentUser?.permissions?.includes('manage_users') || isAdmin;
+  // مؤقتاً نعتبر المستخدم مدير حتى يتم تفعيل المصادقة مرة أخرى
+  const isAdmin = !state.currentUser || state.currentUser?.role === 'admin';
+  const hasManageUsersPermission = !state.currentUser || state.currentUser?.permissions?.includes('manage_users') || isAdmin;
 
   const handleAddUser = async (userData: {
     username: string;
@@ -35,7 +36,6 @@ export default function UsersPage() {
     
     if (result.success) {
       setIsAddUserOpen(false);
-      // Refresh the users list
       refetch();
     }
     
@@ -47,44 +47,6 @@ export default function UsersPage() {
       <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">جاري تحميل المستخدمين...</div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // If user doesn't have permission to manage users, show limited view
-  if (!hasManageUsersPermission) {
-    return (
-      <Layout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                المستخدمين
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">
-                عرض المستخدمين (صلاحيات محدودة)
-              </p>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>قائمة المستخدمين</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500 text-center py-8">
-                ليس لديك صلاحية لإدارة المستخدمين. يمكنك عرض المعلومات الأساسية فقط.
-              </p>
-              {users.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600">
-                    إجمالي المستخدمين: {users.length}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </Layout>
     );
