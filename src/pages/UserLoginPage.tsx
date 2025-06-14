@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ export default function UserLoginPage() {
           description: "اسم المستخدم غير موجود",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -65,6 +67,7 @@ export default function UserLoginPage() {
           description: "البريد الإلكتروني غير موجود",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -83,6 +86,7 @@ export default function UserLoginPage() {
             : error.message,
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -95,6 +99,7 @@ export default function UserLoginPage() {
           variant: "destructive",
         });
         await supabase.auth.signOut();
+        setIsLoading(false);
         return;
       }
 
@@ -104,6 +109,7 @@ export default function UserLoginPage() {
       });
 
       navigate('/dashboard');
+      setIsLoading(false);
     } catch (error) {
       console.error('خطأ عام في تسجيل الدخول:', error);
       toast({
@@ -111,8 +117,6 @@ export default function UserLoginPage() {
         description: "حدث خطأ غير متوقع",
         variant: "destructive",
       });
-    } finally {
-      // التأكد من إيقاف حالة التحميل
       setIsLoading(false);
     }
   };

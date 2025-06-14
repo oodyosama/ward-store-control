@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
           description: "اسم المستخدم غير موجود أو غير صحيح",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -81,6 +83,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
             : "حدث خطأ في تسجيل الدخول",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -93,6 +96,9 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
 
       // الانتقال إلى لوحة التحكم
       navigate('/dashboard');
+      
+      // إيقاف حالة التحميل بعد التنقل الناجح
+      setIsLoading(false);
     } catch (error) {
       console.error('خطأ عام في تسجيل الدخول:', error);
       toast({
@@ -100,8 +106,6 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         description: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
-    } finally {
-      // التأكد من إيقاف حالة التحميل
       setIsLoading(false);
     }
   };
