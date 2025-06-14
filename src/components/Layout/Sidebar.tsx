@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -39,7 +38,7 @@ const menuItems = [
     label: 'نقطة البيع',
     labelEn: 'Point of Sale',
     color: 'from-emerald-500 to-teal-600',
-    permissions: ['pos_access']
+    permissions: ['pos_access', 'read'] // Allow both pos_access and read permissions
   },
   {
     path: '/items',
@@ -105,8 +104,8 @@ const systemItems = [
     icon: Users,
     label: 'إدارة المستخدمين',
     labelEn: 'Users Management',
-    adminOnly: true,
-    permissions: ['manage_users']
+    adminOnly: false, // Allow all users to see, but restrict functionality in the page
+    permissions: ['read'] // Changed from manage_users to read
   },
   {
     path: '/notifications',
@@ -130,9 +129,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const unreadNotifications = state.notifications.filter(n => !n.isRead).length;
 
   const isAdmin = state.currentUser?.role === 'admin';
-  const userPermissions = state.currentUser?.permissions || [];
+  const userPermissions = state.currentUser?.permissions || ['read']; // Default to read permission
 
   const hasPermission = (requiredPermissions: string[]) => {
+    // If user is admin, allow all permissions
+    if (isAdmin) return true;
+    // Otherwise check if user has any of the required permissions
     return requiredPermissions.some(permission => userPermissions.includes(permission));
   };
 
@@ -293,7 +295,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div className="flex-1 text-right">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {state.currentUser?.username}
+                {state.currentUser?.username || 'مستخدم'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {state.currentUser?.role === 'admin' ? 'مدير النظام' :
