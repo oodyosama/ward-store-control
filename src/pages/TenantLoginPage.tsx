@@ -41,13 +41,21 @@ export default function TenantLoginPage() {
       });
 
       if (error) {
-        toast({
-          title: "خطأ في تسجيل الدخول",
-          description: error.message === 'Invalid login credentials' 
-            ? "بيانات الدخول غير صحيحة" 
-            : error.message,
-          variant: "destructive",
-        });
+        if (error.message === 'Email not confirmed') {
+          toast({
+            title: "البريد الإلكتروني غير مؤكد",
+            description: "يرجى تأكيد بريدك الإلكتروني من خلال الرابط المرسل إليك",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "خطأ في تسجيل الدخول",
+            description: error.message === 'Invalid login credentials' 
+              ? "بيانات الدخول غير صحيحة" 
+              : error.message,
+            variant: "destructive",
+          });
+        }
         return;
       }
 
@@ -113,10 +121,17 @@ export default function TenantLoginPage() {
     try {
       console.log('Starting tenant signup process...');
 
-      // First create the auth user
+      // Create the auth user with email confirmation
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: signupData.email,
         password: signupData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            username: signupData.username,
+            tenant_name: signupData.tenantName
+          }
+        }
       });
 
       if (authError) {
@@ -140,7 +155,38 @@ export default function TenantLoginPage() {
         return;
       }
 
-      console.log('Auth user created:', authData.user.id);
+      // If email confirmation is enabled, user needs to confirm email first
+      if (!authData.user.email_confirmed_at) {
+        toast({
+          title: "تحقق من بريدك الإلكتروني",
+          description: "تم إرسال رابط التأكيد إلى بريدك الإلكتروني. يرجى النقر على الرابط لتأكيد حسابك قبل تسجيل الدخول.",
+          variant: "default",
+        });
+
+        // Clear signup form and switch to login tab
+        setSignupData({
+          tenantName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          username: ''
+        });
+
+        // Switch to login tab
+        const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
+        loginTab?.click();
+
+        // Pre-fill login email
+        setLoginData({
+          email: signupData.email,
+          password: ''
+        });
+
+        return;
+      }
+
+      // If email is already confirmed, proceed with creating tenant and profile
+      console.log('Auth user created and confirmed:', authData.user.id);
 
       // Wait a moment for auth to be established
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -163,8 +209,6 @@ export default function TenantLoginPage() {
           description: tenantError.message || "فشل في إنشاء بيانات المؤسسة",
           variant: "destructive",
         });
-        // Clean up auth user if tenant creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
         return;
       }
 
@@ -205,7 +249,6 @@ export default function TenantLoginPage() {
 
       if (tenantUserError) {
         console.error('Tenant user creation error:', tenantUserError);
-        // Don't fail the signup for this, as it's not critical
         console.log('Warning: Failed to create tenant user record, but continuing...');
       }
 
@@ -402,7 +445,7 @@ export default function TenantLoginPage() {
             <Button 
               variant="link" 
               onClick={() => navigate('/user-login')}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              الأسرعassName="text-sm text-blue-600 hover:text-blue-800"
             >
               تسجيل دخول الموظفين والمستخدمين
             </Button>
