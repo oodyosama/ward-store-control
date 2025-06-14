@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogIn, User, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const [isAdminLogin, setIsAdminLogin] = useState(false);
@@ -15,6 +16,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +33,7 @@ export default function LoginPage() {
       if (isAdminLogin) {
         // Admin login
         if (username === 'admin' && password === 'admin') {
-          // Store admin session
-          localStorage.setItem('userRole', 'admin');
-          localStorage.setItem('username', 'admin');
-          localStorage.setItem('isAuthenticated', 'true');
+          login('admin', 'admin');
           
           toast({
             title: "تم تسجيل الدخول بنجاح",
@@ -47,9 +53,7 @@ export default function LoginPage() {
         // For now, we'll use simple validation
         // In a real app, this would check against Supabase auth
         if (username && password) {
-          localStorage.setItem('userRole', 'user');
-          localStorage.setItem('username', username);
-          localStorage.setItem('isAuthenticated', 'true');
+          login(username, 'user');
           
           toast({
             title: "تم تسجيل الدخول بنجاح",

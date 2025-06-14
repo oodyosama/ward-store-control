@@ -48,6 +48,76 @@ function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// App Routes component that uses auth context
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Index />
+        </ProtectedRoute>
+      } />
+      <Route path="/items" element={
+        <ProtectedRoute>
+          <ItemsPageWithSupabase />
+        </ProtectedRoute>
+      } />
+      <Route path="/warehouses" element={
+        <ProtectedRoute>
+          <WarehousesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/transactions" element={
+        <ProtectedRoute>
+          <TransactionsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/reports" element={
+        <ProtectedRoute>
+          <ReportsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/analytics" element={
+        <ProtectedRoute>
+          <AnalyticsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/scanner" element={
+        <ProtectedRoute>
+          <ScannerPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/archive" element={
+        <ProtectedRoute>
+          <ArchivePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/users" element={
+        <AdminProtectedRoute>
+          <UsersPage />
+        </AdminProtectedRoute>
+      } />
+      <Route path="/notifications" element={
+        <ProtectedRoute>
+          <NotificationsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <AdminProtectedRoute>
+          <SettingsPage />
+        </AdminProtectedRoute>
+      } />
+      <Route path="/pos" element={
+        <ProtectedRoute>
+          <POSPage />
+        </ProtectedRoute>
+      } />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 const App = () => {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -66,70 +136,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } />
-                <Route path="/items" element={
-                  <ProtectedRoute>
-                    <ItemsPageWithSupabase />
-                  </ProtectedRoute>
-                } />
-                <Route path="/warehouses" element={
-                  <ProtectedRoute>
-                    <WarehousesPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/transactions" element={
-                  <ProtectedRoute>
-                    <TransactionsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/reports" element={
-                  <ProtectedRoute>
-                    <ReportsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/analytics" element={
-                  <ProtectedRoute>
-                    <AnalyticsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/scanner" element={
-                  <ProtectedRoute>
-                    <ScannerPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/archive" element={
-                  <ProtectedRoute>
-                    <ArchivePage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/users" element={
-                  <AdminProtectedRoute>
-                    <UsersPage />
-                  </AdminProtectedRoute>
-                } />
-                <Route path="/notifications" element={
-                  <ProtectedRoute>
-                    <NotificationsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <AdminProtectedRoute>
-                    <SettingsPage />
-                  </AdminProtectedRoute>
-                } />
-                <Route path="/pos" element={
-                  <ProtectedRoute>
-                    <POSPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <AppRoutes />
             </BrowserRouter>
           </WarehouseProvider>
         </AuthProvider>
