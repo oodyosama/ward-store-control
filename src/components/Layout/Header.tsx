@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Bell, Search, User, Menu, X, LogOut } from 'lucide-react';
+import { Bell, Search, User, LogOut } from 'lucide-react';
 import { useWarehouse } from '@/contexts/WarehouseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,12 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
-interface HeaderProps {
-  onMenuToggle: () => void;
-  isMobileMenuOpen: boolean;
-}
-
-export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
+export default function Header() {
   const { state } = useWarehouse();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -28,29 +23,18 @@ export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) 
     <header className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* شعار النظام وزر القائمة */}
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMenuToggle}
-              className="md:hidden"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-            
-            <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">م</span>
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  نظام إدارة المخازن
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Warehouse Management System
-                </p>
-              </div>
+          {/* شعار النظام */}
+          <div className="flex items-center space-x-3 rtl:space-x-reverse">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">م</span>
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                نظام إدارة المخازن
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Warehouse Management System
+              </p>
             </div>
           </div>
 
