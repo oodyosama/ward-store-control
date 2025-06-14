@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { User, Warehouse, Item, Transaction, Notification, DashboardStats } from '@/types/warehouse';
 
@@ -10,6 +11,8 @@ interface WarehouseState {
   notifications: Notification[];
   selectedWarehouse: Warehouse | null;
   dashboardStats: DashboardStats | null;
+  stocks: any[]; // Add missing stocks property
+  recentTransactions: Transaction[]; // Add missing recentTransactions property
   isLoading: boolean;
   error: string | null;
 }
@@ -28,6 +31,8 @@ type WarehouseAction =
   | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
   | { type: 'SET_SELECTED_WAREHOUSE'; payload: Warehouse | null }
   | { type: 'SET_DASHBOARD_STATS'; payload: DashboardStats }
+  | { type: 'SET_STOCKS'; payload: any[] }
+  | { type: 'SET_RECENT_TRANSACTIONS'; payload: Transaction[] }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
 
@@ -48,6 +53,8 @@ const initialState: WarehouseState = {
   notifications: [],
   selectedWarehouse: null,
   dashboardStats: null,
+  stocks: [],
+  recentTransactions: [],
   isLoading: false,
   error: null,
 };
@@ -72,6 +79,10 @@ const warehouseReducer = (state: WarehouseState, action: WarehouseAction): Wareh
       return { ...state, selectedWarehouse: action.payload };
     case 'SET_DASHBOARD_STATS':
       return { ...state, dashboardStats: action.payload };
+    case 'SET_STOCKS':
+      return { ...state, stocks: action.payload };
+    case 'SET_RECENT_TRANSACTIONS':
+      return { ...state, recentTransactions: action.payload };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
