@@ -107,6 +107,7 @@ export default function UsersPage() {
           setSearchQuery={setSearchQuery}
           selectedRole={selectedRole}
           setSelectedRole={setSelectedRole}
+          onRefresh={refetch}
         />
       </div>
     </Layout>
