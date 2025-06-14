@@ -11,7 +11,6 @@ interface UsersHeaderProps {
   isLoading: boolean;
   handleAddUser: (userData: {
     username: string;
-    email: string;
     password: string;
     role: User['role'];
     permissions: string[];

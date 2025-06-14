@@ -26,7 +26,6 @@ interface AddUserDialogProps {
   onClose: () => void;
   onAddUser: (userData: {
     username: string;
-    email: string;
     password: string;
     role: User['role'];
     permissions: string[];
@@ -58,7 +57,6 @@ const ROLE_PERMISSIONS = {
 export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }: AddUserDialogProps) {
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     password: '',
     role: 'warehouse_keeper' as User['role'],
     permissions: ['read'] as string[],
@@ -72,12 +70,6 @@ export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }:
 
     if (!formData.username.trim()) {
       newErrors.username = 'اسم المستخدم مطلوب';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'البريد الإلكتروني مطلوب';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'البريد الإلكتروني غير صحيح';
     }
 
     if (!formData.password.trim()) {
@@ -119,7 +111,6 @@ export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }:
     // Reset form on successful submission
     setFormData({
       username: '',
-      email: '',
       password: '',
       role: 'warehouse_keeper',
       permissions: ['read'],
@@ -131,7 +122,6 @@ export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }:
   const handleClose = () => {
     setFormData({
       username: '',
-      email: '',
       password: '',
       role: 'warehouse_keeper',
       permissions: ['read'],
@@ -162,19 +152,6 @@ export default function AddUserDialog({ isOpen, onClose, onAddUser, isLoading }:
               className={errors.username ? 'border-red-500' : ''}
             />
             {errors.username && <span className="text-sm text-red-500">{errors.username}</span>}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="email">البريد الإلكتروني *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="user@example.com"
-              className={errors.email ? 'border-red-500' : ''}
-            />
-            {errors.email && <span className="text-sm text-red-500">{errors.email}</span>}
           </div>
 
           <div className="grid gap-2">

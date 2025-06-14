@@ -23,7 +23,6 @@ export default function UsersPage() {
 
   const handleAddUser = async (userData: {
     username: string;
-    email: string;
     password: string;
     role: User['role'];
     permissions: string[];

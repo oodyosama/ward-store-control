@@ -53,16 +53,18 @@ export function useAddUser() {
 
   const addUser = async (userData: {
     username: string;
-    email: string;
     password: string;
     role: User['role'];
     permissions: string[];
     isActive: boolean;
   }) => {
     try {
-      // Create user with email and password in Supabase Auth
+      // Generate a default email based on username
+      const defaultEmail = `${userData.username.toLowerCase().replace(/\s+/g, '')}@warehouse.local`;
+      
+      // Create user with generated email and password in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
+        email: defaultEmail,
         password: userData.password,
         options: {
           data: {
@@ -76,9 +78,7 @@ export function useAddUser() {
         console.error('Error creating auth user:', authError);
         toast({
           title: "خطأ في إنشاء المستخدم",
-          description: authError.message === 'User already registered' 
-            ? "البريد الإلكتروني مستخدم بالفعل" 
-            : "حدث خطأ أثناء إنشاء حساب المستخدم.",
+          description: "حدث خطأ أثناء إنشاء حساب المستخدم.",
           variant: "destructive",
         });
         return { success: false };
@@ -90,7 +90,7 @@ export function useAddUser() {
         .insert([{
           id: authData.user?.id,
           username: userData.username,
-          email: userData.email,
+          email: defaultEmail,
           role: userData.role,
           permissions: userData.permissions,
           is_active: userData.isActive,
