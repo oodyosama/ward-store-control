@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +13,11 @@ import {
   CreditCard, 
   DollarSign,
   Receipt,
-  Search
+  Search,
+  Printer
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { thermalPrinter } from '@/utils/thermalPrinter';
 
 // Mock data for demonstration
 const mockItems = [
@@ -82,7 +83,7 @@ export default function POSPage() {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       toast({
         title: "سلة فارغة",
@@ -92,13 +93,58 @@ export default function POSPage() {
       return;
     }
 
-    // Simulate payment processing
-    toast({
-      title: "تم الدفع بنجاح",
-      description: `تم دفع ${getTotalAmount().toFixed(2)} ريال`,
-    });
-    
-    clearCart();
+    try {
+      // Simulate payment processing
+      toast({
+        title: "تم الدفع بنجاح",
+        description: `تم دفع ${getTotalAmount().toFixed(2)} ريال`,
+      });
+      
+      // Auto print if enabled
+      const printerSettings = thermalPrinter.getSettings();
+      if (printerSettings.autoPrint && printerSettings.defaultPrinter === 'thermal') {
+        await handleThermalPrint();
+      }
+      
+      clearCart();
+    } catch (error) {
+      console.error('Checkout error:', error);
+    }
+  };
+
+  const handleThermalPrint = async () => {
+    if (cart.length === 0) {
+      toast({
+        title: "سلة فارغة",
+        description: "لا يوجد عناصر للطباعة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "جاري الطباعة",
+        description: "يتم إرسال الفاتورة إلى الطابعة الحرارية...",
+      });
+
+      await thermalPrinter.printThermal(cart, getTotalAmount());
+      
+      toast({
+        title: "تم الطباعة بنجاح",
+        description: "تم طباعة الفاتورة على الطابعة الحرارية",
+      });
+    } catch (error) {
+      console.error('Thermal printing error:', error);
+      toast({
+        title: "خطأ في الطباعة",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء الطباعة",
+        variant: "destructive",
+      });
+      
+      // Fallback to regular print
+      handlePrintReceipt();
+    }
   };
 
   const handleBarcodeSearch = (e: React.KeyboardEvent) => {
@@ -440,14 +486,24 @@ export default function POSPage() {
                       </Button>
                     </div>
 
-                    <Button 
-                      variant="outline" 
-                      className="w-full flex items-center gap-2"
-                      onClick={handlePrintReceipt}
-                    >
-                      <Receipt className="w-4 h-4" />
-                      طباعة فاتورة
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2"
+                        onClick={handleThermalPrint}
+                      >
+                        <Printer className="w-4 h-4" />
+                        طباعة حرارية
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center gap-2"
+                        onClick={handlePrintReceipt}
+                      >
+                        <Receipt className="w-4 h-4" />
+                        طباعة عادية
+                      </Button>
+                    </div>
                   </>
                 )}
               </CardContent>

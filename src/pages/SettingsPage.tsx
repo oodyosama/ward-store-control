@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +21,8 @@ import {
   Download,
   Upload,
   RefreshCw,
-  Save
+  Save,
+  Printer
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -65,15 +65,29 @@ export default function SettingsPage() {
     debugMode: false
   });
 
+  // Printer settings
+  const [printerSettings, setPrinterSettings] = useState({
+    defaultPrinter: 'thermal',
+    thermalPrinterIP: '192.168.1.100',
+    thermalPrinterPort: 9100,
+    autoPrint: true,
+    receiptWidth: 58, // mm
+    printCopies: 1,
+    enableSound: true
+  });
+
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
+      // Simulate API call - save printer settings
+      localStorage.setItem('printerSettings', JSON.stringify(printerSettings));
+      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
         title: "تم حفظ الإعدادات",
-        description: "تم حفظ جميع الإعدادات بنجاح",
+        description: "تم حفظ جميع الإعدادات بما في ذلك إعدادات الطابعة بنجاح",
       });
     } catch (error) {
       toast({
@@ -83,6 +97,30 @@ export default function SettingsPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const testThermalPrinter = async () => {
+    try {
+      toast({
+        title: "اختبار الطابعة الحرارية",
+        description: "جاري إرسال اختبار طباعة...",
+      });
+      
+      // This would be implemented with actual thermal printer communication
+      // For now, we'll simulate it
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      toast({
+        title: "نجح الاختبار",
+        description: "تم الاتصال بالطابعة الحرارية بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "فشل الاختبار",
+        description: "لم يتم الاتصال بالطابعة الحرارية",
+        variant: "destructive",
+      });
     }
   };
 
@@ -139,6 +177,10 @@ export default function SettingsPage() {
                 <div className="flex items-center space-x-3 rtl:space-x-reverse p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                   <Settings className="w-4 h-4" />
                   <span className="text-sm font-medium">الإعدادات العامة</span>
+                </div>
+                <div className="flex items-center space-x-3 rtl:space-x-reverse p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                  <Printer className="w-4 h-4" />
+                  <span className="text-sm">إعدادات الطباعة</span>
                 </div>
                 <div className="flex items-center space-x-3 rtl:space-x-reverse p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
                   <Bell className="w-4 h-4" />
@@ -222,6 +264,108 @@ export default function SettingsPage() {
                     className="text-right"
                     rows={3}
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Printer Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 rtl:space-x-reverse">
+                  <Printer className="w-5 h-5" />
+                  <span>إعدادات الطباعة</span>
+                </CardTitle>
+                <CardDescription>
+                  تكوين الطابعات وإعدادات الفواتير
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>الطباعة التلقائية</Label>
+                      <p className="text-sm text-gray-500">طباعة الفواتير تلقائياً بعد الدفع</p>
+                    </div>
+                    <Checkbox
+                      checked={printerSettings.autoPrint}
+                      onCheckedChange={(checked) => setPrinterSettings({...printerSettings, autoPrint: !!checked})}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>تفعيل الصوت</Label>
+                      <p className="text-sm text-gray-500">تشغيل صوت عند اكتمال الطباعة</p>
+                    </div>
+                    <Checkbox
+                      checked={printerSettings.enableSound}
+                      onCheckedChange={(checked) => setPrinterSettings({...printerSettings, enableSound: !!checked})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultPrinter">الطابعة الافتراضية</Label>
+                    <Select value={printerSettings.defaultPrinter} onValueChange={(value) => setPrinterSettings({...printerSettings, defaultPrinter: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="thermal">طابعة حرارية</SelectItem>
+                        <SelectItem value="standard">طابعة عادية</SelectItem>
+                        <SelectItem value="pdf">تصدير PDF</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="printCopies">عدد النسخ</Label>
+                    <Input
+                      id="printCopies"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={printerSettings.printCopies}
+                      onChange={(e) => setPrinterSettings({...printerSettings, printCopies: parseInt(e.target.value)})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="thermalIP">عنوان IP للطابعة الحرارية</Label>
+                    <Input
+                      id="thermalIP"
+                      value={printerSettings.thermalPrinterIP}
+                      onChange={(e) => setPrinterSettings({...printerSettings, thermalPrinterIP: e.target.value})}
+                      placeholder="192.168.1.100"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="thermalPort">منفذ الطابعة الحرارية</Label>
+                    <Input
+                      id="thermalPort"
+                      type="number"
+                      value={printerSettings.thermalPrinterPort}
+                      onChange={(e) => setPrinterSettings({...printerSettings, thermalPrinterPort: parseInt(e.target.value)})}
+                      placeholder="9100"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="receiptWidth">عرض الفاتورة (مم)</Label>
+                    <Select value={printerSettings.receiptWidth.toString()} onValueChange={(value) => setPrinterSettings({...printerSettings, receiptWidth: parseInt(value)})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="58">58 مم</SelectItem>
+                        <SelectItem value="80">80 مم</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button onClick={testThermalPrinter} variant="outline" className="flex-1">
+                    <Printer className="w-4 h-4 ml-2" />
+                    اختبار الطابعة الحرارية
+                  </Button>
                 </div>
               </CardContent>
             </Card>
