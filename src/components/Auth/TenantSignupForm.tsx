@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Lock, User } from 'lucide-react';
+import { User, Lock, Building, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -29,32 +29,7 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
     if (signupData.password !== signupData.confirmPassword) {
       toast({
         title: "خطأ في كلمة المرور",
-        description: "كلمة المرور وتأكيدها غير متطابقتين",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (signupData.password.length < 6) {
-      toast({
-        title: "خطأ في كلمة المرور",
-        description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if username already exists
-    const { data: existingProfile } = await supabase
-      .from('tenant_profiles')
-      .select('username')
-      .eq('username', signupData.username)
-      .single();
-
-    if (existingProfile) {
-      toast({
-        title: "خطأ في إنشاء الحساب",
-        description: "اسم المستخدم مستخدم بالفعل",
+        description: "كلمة المرور وتأكيد كلمة المرور غير متطابقتين",
         variant: "destructive",
       });
       return;
@@ -63,107 +38,25 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
     setIsLoading(true);
 
     try {
-      console.log('Starting tenant signup process...');
+      // Generate internal email from username
+      const internalEmail = `${signupData.username}@tenant.local`;
 
-      // Generate a unique email based on username
-      const generatedEmail = `${signupData.username}@tenant.local`;
-
-      // Create the auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: generatedEmail,
-        password: signupData.password,
-        options: {
-          data: {
-            username: signupData.username,
-            tenant_name: signupData.tenantName
-          },
-          emailRedirectTo: undefined
-        }
+      // Call the Supabase function to create tenant with owner
+      const { data, error } = await supabase.rpc('create_tenant_with_owner', {
+        tenant_name: signupData.tenantName,
+        owner_email: internalEmail,
+        owner_password: signupData.password,
+        owner_username: signupData.username
       });
 
-      if (authError) {
-        console.error('Auth signup error:', authError);
+      if (error) {
+        console.error('Signup error:', error);
         toast({
           title: "خطأ في إنشاء الحساب",
-          description: authError.message,
+          description: error.message,
           variant: "destructive",
         });
         return;
-      }
-
-      if (!authData.user) {
-        toast({
-          title: "خطأ في إنشاء الحساب",
-          description: "فشل في إنشاء المستخدم",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Auth user created:', authData.user.id);
-
-      // Wait a moment for auth to be established
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create tenant first
-      console.log('Creating tenant...');
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .insert([{
-          name: signupData.tenantName,
-          email: generatedEmail,
-        }])
-        .select()
-        .single();
-
-      if (tenantError) {
-        console.error('Tenant creation error:', tenantError);
-        toast({
-          title: "خطأ في إنشاء المؤسسة",
-          description: tenantError.message || "فشل في إنشاء بيانات المؤسسة",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Tenant created:', tenantData.id);
-
-      // Create tenant profile
-      console.log('Creating tenant profile...');
-      const { error: profileError } = await supabase
-        .from('tenant_profiles')
-        .insert([{
-          user_id: authData.user.id,
-          tenant_id: tenantData.id,
-          username: signupData.username,
-          is_tenant_owner: true,
-        }]);
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        toast({
-          title: "خطأ في إنشاء الملف الشخصي",
-          description: profileError.message || "فشل في إنشاء الملف الشخصي",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Profile created successfully');
-
-      // Create tenant user record
-      const { error: tenantUserError } = await supabase
-        .from('tenant_users')
-        .insert([{
-          tenant_id: tenantData.id,
-          user_id: authData.user.id,
-          role: 'admin',
-          permissions: ['read', 'write', 'delete', 'manage_users'],
-        }]);
-
-      if (tenantUserError) {
-        console.error('Tenant user creation error:', tenantUserError);
-        console.log('Warning: Failed to create tenant user record, but continuing...');
       }
 
       toast({
@@ -171,7 +64,7 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
         description: "يمكنك الآن تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور",
       });
 
-      // Clear signup form and trigger success callback
+      // Reset form
       setSignupData({
         tenantName: '',
         username: '',
@@ -179,13 +72,13 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
         confirmPassword: ''
       });
 
+      // Switch to login tab
       onSignupSuccess(signupData.username);
-
     } catch (error) {
       console.error('Signup error:', error);
       toast({
         title: "خطأ في إنشاء الحساب",
-        description: "حدث خطأ غير متوقع أثناء إنشاء الحساب",
+        description: "حدث خطأ غير متوقع",
         variant: "destructive",
       });
     } finally {
@@ -198,7 +91,7 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
       <div className="space-y-2">
         <Label htmlFor="tenantName">اسم المؤسسة</Label>
         <div className="relative">
-          <Building2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Building className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             id="tenantName"
             type="text"
@@ -212,11 +105,11 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="signupUsername">اسم المستخدم</Label>
+        <Label htmlFor="signup-username">اسم المستخدم</Label>
         <div className="relative">
           <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            id="signupUsername"
+            id="signup-username"
             type="text"
             placeholder="أدخل اسم المستخدم"
             className="pr-10"
@@ -228,35 +121,33 @@ export function TenantSignupForm({ isLoading, setIsLoading, onSignupSuccess }: T
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="signupPassword">كلمة المرور</Label>
+        <Label htmlFor="signup-password">كلمة المرور</Label>
         <div className="relative">
           <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            id="signupPassword"
+            id="signup-password"
             type="password"
-            placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+            placeholder="أدخل كلمة المرور"
             className="pr-10"
             value={signupData.password}
             onChange={(e) => setSignupData({...signupData, password: e.target.value})}
             required
-            minLength={6}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+        <Label htmlFor="confirm-password">تأكيد كلمة المرور</Label>
         <div className="relative">
           <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            id="confirmPassword"
+            id="confirm-password"
             type="password"
-            placeholder="أعد إدخال كلمة المرور"
+            placeholder="تأكيد كلمة المرور"
             className="pr-10"
             value={signupData.confirmPassword}
             onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
             required
-            minLength={6}
           />
         </div>
       </div>

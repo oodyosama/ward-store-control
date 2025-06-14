@@ -24,53 +24,68 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!loginData.username || !loginData.password) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى إدخال اسم المستخدم وكلمة المرور",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // First, get the email associated with this username
+      console.log('Attempting login for username:', loginData.username);
+
+      // First, get the tenant profile associated with this username
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
-        .select('*, tenants(*)')
+        .select(`
+          *,
+          tenants(*)
+        `)
         .eq('username', loginData.username)
         .eq('is_tenant_owner', true)
         .single();
 
       if (profileError || !profile) {
+        console.error('Profile lookup error:', profileError);
         toast({
           title: "خطأ في تسجيل الدخول",
-          description: "اسم المستخدم غير موجود",
+          description: "اسم المستخدم غير موجود أو غير صحيح",
           variant: "destructive",
         });
         return;
       }
 
-      // Get the user's email from the tenants table
-      const userEmail = profile.tenants?.email;
-      if (!userEmail) {
-        toast({
-          title: "خطأ في تسجيل الدخول",
-          description: "لم يتم العثور على البريد الإلكتروني المرتبط بهذا الحساب",
-          variant: "destructive",
-        });
-        return;
-      }
+      console.log('Found profile:', profile);
+
+      // Generate the internal email from username
+      const internalEmail = `${loginData.username}@tenant.local`;
+      
+      console.log('Attempting auth with email:', internalEmail);
 
       // Sign in with email and password
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: userEmail,
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: internalEmail,
         password: loginData.password
       });
 
-      if (error) {
+      if (authError) {
+        console.error('Auth error:', authError);
         toast({
           title: "خطأ في تسجيل الدخول",
-          description: error.message === 'Invalid login credentials' 
+          description: authError.message === 'Invalid login credentials' 
             ? "اسم المستخدم أو كلمة المرور غير صحيحة" 
-            : error.message,
+            : "حدث خطأ في تسجيل الدخول",
           variant: "destructive",
         });
         return;
       }
+
+      console.log('Auth successful:', authData);
 
       toast({
         title: "تم تسجيل الدخول بنجاح",
@@ -82,7 +97,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
       console.error('Login error:', error);
       toast({
         title: "خطأ في تسجيل الدخول",
-        description: "حدث خطأ غير متوقع",
+        description: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
     } finally {
@@ -104,6 +119,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
             value={loginData.username}
             onChange={(e) => setLoginData({...loginData, username: e.target.value})}
             required
+            disabled={isLoading}
           />
         </div>
       </div>
@@ -120,6 +136,7 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
             value={loginData.password}
             onChange={(e) => setLoginData({...loginData, password: e.target.value})}
             required
+            disabled={isLoading}
           />
         </div>
       </div>

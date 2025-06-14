@@ -10,12 +10,12 @@ import { TenantSignupForm } from '@/components/Auth/TenantSignupForm';
 
 export default function TenantLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
 
   const handleSignupSuccess = (username: string) => {
-    // Switch to login tab
-    const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
-    loginTab?.click();
+    // Switch to login tab and pre-fill username
+    setActiveTab("login");
   };
 
   return (
@@ -24,9 +24,9 @@ export default function TenantLoginPage() {
         <TenantLoginHeader />
 
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login" data-value="login">تسجيل الدخول</TabsTrigger>
+              <TabsTrigger value="login">تسجيل الدخول</TabsTrigger>
               <TabsTrigger value="signup">إنشاء حساب جديد</TabsTrigger>
             </TabsList>
 
