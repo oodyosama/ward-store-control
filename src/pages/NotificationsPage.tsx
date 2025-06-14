@@ -25,7 +25,7 @@ import {
   Trash2,
   Filter
 } from 'lucide-react';
-import { Notification } from '@/contexts/types';
+import { Notification } from '@/types/warehouse';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
@@ -8,15 +8,25 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
-      {/* الشريط الجانبي الثابت */}
-      <Sidebar />
+      {/* الشريط الجانبي */}
+      <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
       
       {/* المحتوى الرئيسي */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* الرأس */}
-        <Header />
+        <Header onMenuToggle={toggleMobileMenu} isMobileMenuOpen={isMobileMenuOpen} />
         
         {/* المحتوى */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
