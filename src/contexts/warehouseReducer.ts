@@ -5,6 +5,7 @@ export const initialState: WarehouseState = {
   users: [],
   items: [],
   warehouses: [],
+  stocks: [],
   transactions: [],
   notifications: [],
   dashboardStats: null,
@@ -64,6 +65,17 @@ export function warehouseReducer(state: WarehouseState, action: WarehouseAction)
         ...state,
         warehouses: state.warehouses.filter(warehouse => warehouse.id !== action.payload)
       };
+    case 'SET_STOCKS':
+      return { ...state, stocks: action.payload };
+    case 'ADD_STOCK':
+      return { ...state, stocks: [...state.stocks, action.payload] };
+    case 'UPDATE_STOCK':
+      return {
+        ...state,
+        stocks: state.stocks.map(stock => 
+          stock.id === action.payload.id ? action.payload : stock
+        )
+      };
     case 'SET_TRANSACTIONS':
       return { ...state, transactions: action.payload };
     case 'ADD_TRANSACTION':
@@ -84,7 +96,7 @@ export function warehouseReducer(state: WarehouseState, action: WarehouseAction)
         ...state,
         notifications: state.notifications.map(notification => 
           notification.id === action.payload 
-            ? { ...notification, isRead: true } 
+            ? { ...notification, isRead: true, readAt: new Date() } 
             : notification
         )
       };

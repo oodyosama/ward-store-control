@@ -103,7 +103,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
-        setProfile(data);
+        // Handle the case where tenant_users might be an error or array
+        const profileData: TenantProfile = {
+          ...data,
+          tenant_users: Array.isArray(data.tenant_users) ? data.tenant_users : []
+        };
+        
+        setProfile(profileData);
         console.log('Profile loaded:', data.username);
       }
     } catch (error) {

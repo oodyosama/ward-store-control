@@ -42,6 +42,20 @@ export interface Warehouse {
   createdAt: Date;
 }
 
+export interface Stock {
+  id: string;
+  itemId: string;
+  warehouseId: string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  unitPrice: number;
+  totalValue: number;
+  batchNumber?: string;
+  expiryDate?: Date;
+  lastUpdated: Date;
+}
+
 export interface Transaction {
   id: string;
   type: 'inbound' | 'outbound' | 'transfer' | 'adjustment';
@@ -65,11 +79,12 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'warning' | 'error' | 'success';
-  priority: 'low' | 'medium' | 'high';
+  type: 'low_stock' | 'expiry_warning' | 'negative_stock' | 'system' | 'user_action';
+  priority: 'low' | 'medium' | 'high' | 'critical';
   isRead: boolean;
   userId?: string;
   createdAt: Date;
+  readAt?: Date;
 }
 
 export interface DashboardStats {
@@ -86,6 +101,7 @@ export interface WarehouseState {
   users: User[];
   items: Item[];
   warehouses: Warehouse[];
+  stocks: Stock[];
   transactions: Transaction[];
   notifications: Notification[];
   dashboardStats: DashboardStats | null;
@@ -108,6 +124,9 @@ export type WarehouseAction =
   | { type: 'ADD_WAREHOUSE'; payload: Warehouse }
   | { type: 'UPDATE_WAREHOUSE'; payload: Warehouse }
   | { type: 'DELETE_WAREHOUSE'; payload: string }
+  | { type: 'SET_STOCKS'; payload: Stock[] }
+  | { type: 'ADD_STOCK'; payload: Stock }
+  | { type: 'UPDATE_STOCK'; payload: Stock }
   | { type: 'SET_TRANSACTIONS'; payload: Transaction[] }
   | { type: 'ADD_TRANSACTION'; payload: Transaction }
   | { type: 'UPDATE_TRANSACTION'; payload: Transaction }
