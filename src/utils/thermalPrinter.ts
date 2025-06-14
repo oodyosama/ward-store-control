@@ -36,63 +36,139 @@ export class ThermalPrinterService {
   private formatReceiptText(cart: CartItem[], total: number): string {
     const width = this.settings.receiptWidth === 58 ? 32 : 48;
     const separator = '='.repeat(width);
+    const dottedLine = '-'.repeat(width);
     const date = new Date().toLocaleDateString('ar-SA');
-    const time = new Date().toLocaleTimeString('ar-SA');
+    const time = new Date().toLocaleTimeString('ar-SA', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
     
     let receipt = '';
     
-    // Header
-    receipt += this.centerText('نظام المخازن - نقطة البيع', width) + '\n';
+    // Header with company info
+    receipt += '\n';
+    receipt += this.centerText('نظام المخازن المتطور', width) + '\n';
+    receipt += this.centerText('ADVANCED WAREHOUSE SYSTEM', width) + '\n';
     receipt += this.centerText('فاتورة مبيعات', width) + '\n';
-    receipt += separator + '\n';
-    receipt += `التاريخ: ${date}\n`;
-    receipt += `الوقت: ${time}\n`;
-    receipt += `رقم الفاتورة: ${Date.now()}\n`;
+    receipt += this.centerText('SALES INVOICE', width) + '\n';
     receipt += separator + '\n';
     
-    // Items
-    receipt += this.padText('الصنف', 'الكمية', 'السعر', width) + '\n';
-    receipt += '-'.repeat(width) + '\n';
+    // Invoice details
+    receipt += this.formatLine('رقم الفاتورة:', invoiceNumber, width) + '\n';
+    receipt += this.formatLine('Invoice No:', invoiceNumber, width) + '\n';
+    receipt += this.formatLine('التاريخ:', date, width) + '\n';
+    receipt += this.formatLine('Date:', date, width) + '\n';
+    receipt += this.formatLine('الوقت:', time, width) + '\n';
+    receipt += this.formatLine('Time:', time, width) + '\n';
+    receipt += separator + '\n';
     
-    cart.forEach(item => {
-      const itemName = this.truncateText(item.name, 12);
-      const quantity = item.quantity.toString();
-      const price = `${(item.price * item.quantity).toFixed(2)}`;
-      receipt += this.padText(itemName, quantity, price, width) + '\n';
+    // Items header
+    receipt += this.formatItemHeader(width) + '\n';
+    receipt += dottedLine + '\n';
+    
+    // Items list
+    cart.forEach((item, index) => {
+      const itemTotal = item.price * item.quantity;
+      receipt += this.formatItemLine(
+        `${index + 1}. ${this.truncateText(item.name, width - 15)}`,
+        item.quantity.toString(),
+        item.price.toFixed(2),
+        itemTotal.toFixed(2),
+        width
+      ) + '\n';
     });
     
+    receipt += dottedLine + '\n';
+    
+    // Totals section
+    const subtotal = total;
+    const tax = 0; // You can add tax calculation here
+    const discount = 0; // You can add discount calculation here
+    
+    receipt += this.formatLine('المجموع الفرعي:', `${subtotal.toFixed(2)} ريال`, width) + '\n';
+    if (tax > 0) {
+      receipt += this.formatLine('الضريبة:', `${tax.toFixed(2)} ريال`, width) + '\n';
+    }
+    if (discount > 0) {
+      receipt += this.formatLine('الخصم:', `${discount.toFixed(2)} ريال`, width) + '\n';
+    }
     receipt += separator + '\n';
-    receipt += this.padRight(`المجموع الكلي: ${total.toFixed(2)} ريال`, width) + '\n';
+    receipt += this.formatTotalLine(`المجموع الكلي: ${total.toFixed(2)} ريال`, width) + '\n';
+    receipt += this.formatTotalLine(`TOTAL: ${total.toFixed(2)} SAR`, width) + '\n';
     receipt += separator + '\n';
+    
+    // Payment info
+    receipt += this.centerText('طريقة الدفع: نقداً', width) + '\n';
+    receipt += this.centerText('Payment Method: Cash', width) + '\n';
+    receipt += '\n';
+    
+    // Footer
     receipt += this.centerText('شكراً لتسوقكم معنا', width) + '\n';
-    receipt += this.centerText('نظام المخازن - الإصدار 1.0', width) + '\n';
-    receipt += '\n\n\n'; // Feed paper
+    receipt += this.centerText('Thank you for shopping with us', width) + '\n';
+    receipt += '\n';
+    receipt += this.centerText('للاستفسارات: 966-11-1234567', width) + '\n';
+    receipt += this.centerText('For inquiries: 966-11-1234567', width) + '\n';
+    receipt += '\n';
+    receipt += this.centerText('تم الطباعة بواسطة نظام المخازن', width) + '\n';
+    receipt += this.centerText('Printed by Warehouse System v1.0', width) + '\n';
+    
+    // Paper feed
+    receipt += '\n\n\n\n';
     
     return receipt;
   }
 
   private centerText(text: string, width: number): string {
-    const padding = Math.max(0, Math.floor((width - text.length) / 2));
-    return ' '.repeat(padding) + text;
+    if (text.length >= width) return text.substring(0, width);
+    const padding = Math.floor((width - text.length) / 2);
+    return ' '.repeat(padding) + text + ' '.repeat(width - text.length - padding);
   }
 
-  private padText(left: string, center: string, right: string, width: number): string {
-    const centerPos = Math.floor(width / 2);
-    const rightPos = width - right.length;
+  private formatLine(label: string, value: string, width: number): string {
+    const maxLabelWidth = Math.floor(width * 0.6);
+    const maxValueWidth = width - maxLabelWidth;
     
-    let line = left.padEnd(centerPos - Math.floor(center.length / 2));
-    line = line.substring(0, centerPos - Math.floor(center.length / 2)) + center;
-    line = line.padEnd(rightPos) + right;
+    const truncatedLabel = this.truncateText(label, maxLabelWidth);
+    const truncatedValue = this.truncateText(value, maxValueWidth);
     
-    return line.substring(0, width);
+    return truncatedLabel.padEnd(maxLabelWidth) + truncatedValue.padStart(maxValueWidth);
   }
 
-  private padRight(text: string, width: number): string {
-    return text.padStart(width);
+  private formatTotalLine(text: string, width: number): string {
+    return this.centerText(text.toUpperCase(), width);
+  }
+
+  private formatItemHeader(width: number): string {
+    if (width <= 32) {
+      // For 58mm paper
+      return 'الصنف'.padEnd(16) + 'ك'.padEnd(3) + 'سعر'.padEnd(6) + 'مجموع'.padStart(7);
+    } else {
+      // For 80mm paper
+      return 'الصنف'.padEnd(24) + 'الكمية'.padEnd(8) + 'السعر'.padEnd(8) + 'المجموع'.padStart(8);
+    }
+  }
+
+  private formatItemLine(name: string, qty: string, price: string, total: string, width: number): string {
+    if (width <= 32) {
+      // For 58mm paper
+      return this.truncateText(name, 16).padEnd(16) + 
+             qty.padEnd(3) + 
+             price.padEnd(6) + 
+             total.padStart(7);
+    } else {
+      // For 80mm paper
+      return this.truncateText(name, 24).padEnd(24) + 
+             qty.padEnd(8) + 
+             price.padEnd(8) + 
+             total.padStart(8);
+    }
   }
 
   private truncateText(text: string, maxLength: number): string {
-    return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 2) + '..';
   }
 
   async printThermal(cart: CartItem[], total: number): Promise<void> {
@@ -134,10 +210,16 @@ export class ThermalPrinterService {
       // Set character set to Arabic/UTF-8
       await writer.write(new Uint8Array([0x1C, 0x43, 0xFF]));
       
+      // Set text alignment to center for header
+      await writer.write(new Uint8Array([0x1B, 0x61, 0x01])); // ESC a 1
+      
       // Print text
       await writer.write(encoder.encode(receiptText));
       
-      // Cut paper
+      // Reset alignment
+      await writer.write(new Uint8Array([0x1B, 0x61, 0x00])); // ESC a 0
+      
+      // Cut paper (full cut)
       await writer.write(new Uint8Array([0x1D, 0x56, 0x00]));
       
       writer.releaseLock();
@@ -159,7 +241,8 @@ export class ThermalPrinterService {
         },
         body: JSON.stringify({
           text: receiptText,
-          copies: this.settings.printCopies
+          copies: this.settings.printCopies,
+          width: this.settings.receiptWidth
         })
       });
       
@@ -168,7 +251,7 @@ export class ThermalPrinterService {
       }
     } catch (error) {
       // If direct printing fails, show the receipt text for manual printing
-      console.log('Receipt text for manual printing:\n', receiptText);
+      console.log('Receipt text for thermal printing:\n', receiptText);
       throw new Error('الطباعة المباشرة غير متاحة. يرجى التحقق من إعدادات الطابعة.');
     }
   }
