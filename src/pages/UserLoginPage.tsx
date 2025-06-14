@@ -103,7 +103,7 @@ export default function UserLoginPage() {
         description: `مرحباً ${profile.username}`,
       });
 
-      navigate('/');
+      navigate('/dashboard');
     } catch (error) {
       console.error('خطأ عام في تسجيل الدخول:', error);
       toast({
@@ -176,7 +176,7 @@ export default function UserLoginPage() {
           <div className="mt-6 flex items-center justify-between">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/')}
               className="flex items-center gap-2"
             >
               <Building2 className="w-4 h-4" />

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,8 +91,8 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         description: `مرحباً ${profile.username}`,
       });
 
-      // الانتقال إلى الصفحة الرئيسية
-      navigate('/');
+      // الانتقال إلى لوحة التحكم
+      navigate('/dashboard');
     } catch (error) {
       console.error('خطأ عام في تسجيل الدخول:', error);
       toast({
