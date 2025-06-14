@@ -71,82 +71,97 @@ export const exportToExcel = (data: any[], reportName: string, reportType: strin
 };
 
 export const exportToPDF = (data: any[], reportName: string, reportType: string) => {
-  const doc = new jsPDF();
-  
-  // Set font for Arabic support
-  doc.setFontSize(16);
-  doc.text(reportName, 20, 20);
-  doc.setFontSize(12);
-  doc.text(`تاريخ التقرير: ${format(new Date(), 'dd/MM/yyyy', { locale: ar })}`, 20, 35);
+  try {
+    const doc = new (jsPDF as any)({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text(reportName, 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Report Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 35);
 
-  let tableData: any[] = [];
-  let headers: string[] = [];
+    let tableData: any[] = [];
+    let headers: string[] = [];
 
-  switch (reportType) {
-    case 'stock':
-      headers = ['الصنف', 'رقم الصنف', 'الكمية الإجمالية', 'الكمية المتاحة', 'القيمة الإجمالية', 'الحالة'];
-      tableData = data.map(item => [
-        item.item.name,
-        item.item.sku,
-        `${item.totalQuantity} ${item.item.unit}`,
-        `${item.availableQuantity} ${item.item.unit}`,
-        `${item.totalValue.toLocaleString()} ريال`,
-        item.status
-      ]);
-      break;
-      
-    case 'movement':
-      headers = ['التاريخ', 'النوع', 'الصنف', 'الكمية', 'القيمة', 'المرجع'];
-      tableData = data.map(transaction => [
-        format(transaction.createdAt, 'dd/MM/yyyy', { locale: ar }),
-        transaction.type === 'inbound' ? 'وارد' : transaction.type === 'outbound' ? 'صادر' : 'تحويل',
-        transaction.itemName || '',
-        `${transaction.quantity} ${transaction.itemUnit || ''}`,
-        `${transaction.totalValue.toLocaleString()} ريال`,
-        transaction.reference
-      ]);
-      break;
-      
-    case 'low_stock':
-      headers = ['الصنف', 'الكمية الحالية', 'الحد الأدنى', 'المطلوب طلبه', 'الأولوية'];
-      tableData = data.map(item => [
-        item.item.name,
-        `${item.totalQuantity} ${item.item.unit}`,
-        `${item.item.minQuantity} ${item.item.unit}`,
-        `${Math.max(0, item.item.minQuantity - item.totalQuantity)} ${item.item.unit}`,
-        item.totalQuantity === 0 ? 'عاجل' : 'متوسط'
-      ]);
-      break;
-      
-    case 'expiry':
-      headers = ['الصنف', 'المخزن', 'الكمية', 'تاريخ الانتهاء', 'الأيام المتبقية'];
-      tableData = data.map(item => {
-        const daysRemaining = item.stock.expiryDate ? 
-          Math.ceil((item.stock.expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-        return [
-          item.item?.name || '',
-          item.warehouse?.name || '',
-          `${item.stock.quantity} ${item.item?.unit || ''}`,
-          item.stock.expiryDate ? format(item.stock.expiryDate, 'dd/MM/yyyy', { locale: ar }) : '-',
-          `${daysRemaining} يوم`
-        ];
-      });
-      break;
+    switch (reportType) {
+      case 'stock':
+        headers = ['Item', 'SKU', 'Total Qty', 'Available Qty', 'Total Value', 'Status'];
+        tableData = data.map(item => [
+          item.item.name,
+          item.item.sku,
+          `${item.totalQuantity} ${item.item.unit}`,
+          `${item.availableQuantity} ${item.item.unit}`,
+          `${item.totalValue.toLocaleString()} SAR`,
+          item.status
+        ]);
+        break;
+        
+      case 'movement':
+        headers = ['Date', 'Type', 'Item', 'Quantity', 'Value', 'Reference'];
+        tableData = data.map(transaction => [
+          format(transaction.createdAt, 'dd/MM/yyyy'),
+          transaction.type === 'inbound' ? 'In' : transaction.type === 'outbound' ? 'Out' : 'Transfer',
+          transaction.itemName || '',
+          `${transaction.quantity} ${transaction.itemUnit || ''}`,
+          `${transaction.totalValue.toLocaleString()} SAR`,
+          transaction.reference
+        ]);
+        break;
+        
+      case 'low_stock':
+        headers = ['Item', 'Current Qty', 'Min Qty', 'To Order', 'Priority'];
+        tableData = data.map(item => [
+          item.item.name,
+          `${item.totalQuantity} ${item.item.unit}`,
+          `${item.item.minQuantity} ${item.item.unit}`,
+          `${Math.max(0, item.item.minQuantity - item.totalQuantity)} ${item.item.unit}`,
+          item.totalQuantity === 0 ? 'Urgent' : 'Medium'
+        ]);
+        break;
+        
+      case 'expiry':
+        headers = ['Item', 'Warehouse', 'Quantity', 'Expiry Date', 'Days Left'];
+        tableData = data.map(item => {
+          const daysRemaining = item.stock.expiryDate ? 
+            Math.ceil((item.stock.expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+          return [
+            item.item?.name || '',
+            item.warehouse?.name || '',
+            `${item.stock.quantity} ${item.item?.unit || ''}`,
+            item.stock.expiryDate ? format(item.stock.expiryDate, 'dd/MM/yyyy') : '-',
+            `${daysRemaining} days`
+          ];
+        });
+        break;
+    }
+
+    // Use autoTable plugin
+    (doc as any).autoTable({
+      head: [headers],
+      body: tableData,
+      startY: 50,
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [66, 139, 202],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      margin: { top: 50, left: 10, right: 10 }
+    });
+
+    doc.save(`${reportName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  } catch (error) {
+    console.error('PDF Export Error:', error);
+    throw error;
   }
-
-  doc.autoTable({
-    head: [headers],
-    body: tableData,
-    startY: 50,
-    styles: {
-      font: 'helvetica',
-      fontSize: 10,
-    },
-    headStyles: {
-      fillColor: [66, 139, 202],
-      textColor: 255,
-    },
-  });
-
-  doc.save(`${reportName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 };
