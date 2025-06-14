@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -44,7 +43,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/" element={<Index />} />
                 <Route path="/login" element={<TenantLoginPage />} />
                 <Route path="/tenant-signup" element={<TenantSignupPage />} />
                 <Route path="/user-login" element={<UserLoginPage />} />
