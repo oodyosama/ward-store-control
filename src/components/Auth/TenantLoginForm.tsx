@@ -25,10 +25,11 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('handleLogin started, current isLoading:', isLoading);
+    console.log('=== LOGIN ATTEMPT START ===');
+    console.log('Current isLoading state:', isLoading);
     
     if (!loginData.username || !loginData.password) {
-      console.log('Validation failed - missing username or password');
+      console.log('❌ Validation failed - missing credentials');
       toast({
         title: "خطأ في البيانات",
         description: "يرجى إدخال اسم المستخدم وكلمة المرور",
@@ -37,13 +38,12 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
       return;
     }
 
-    console.log('Setting isLoading to true');
+    console.log('🔄 Setting isLoading to TRUE');
     setIsLoading(true);
 
     try {
-      console.log('بدء محاولة تسجيل الدخول للمستخدم:', loginData.username);
+      console.log('🔍 Searching for user:', loginData.username);
 
-      // البحث عن المستخدم في قاعدة البيانات
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
         .select(`
@@ -55,9 +55,9 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         .single();
 
       if (profileError || !profile) {
-        console.error('خطأ في العثور على المستخدم:', profileError);
-        console.log('Setting isLoading to false - profile not found');
+        console.error('❌ Profile not found:', profileError);
         setIsLoading(false);
+        console.log('🔄 Setting isLoading to FALSE (profile not found)');
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود أو غير صحيح",
@@ -66,23 +66,20 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         return;
       }
 
-      console.log('تم العثور على المستخدم:', profile);
+      console.log('✅ Profile found:', profile.username);
 
-      // إنشاء البريد الإلكتروني الداخلي
       const internalEmail = `${loginData.username}@tenant.local`;
-      
-      console.log('محاولة تسجيل الدخول بالبريد الإلكتروني:', internalEmail);
+      console.log('🔐 Attempting auth with email:', internalEmail);
 
-      // تسجيل الدخول بالبريد الإلكتروني وكلمة المرور
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: internalEmail,
         password: loginData.password
       });
 
       if (authError) {
-        console.error('خطأ في المصادقة:', authError);
-        console.log('Setting isLoading to false - auth error');
+        console.error('❌ Auth error:', authError.message);
         setIsLoading(false);
+        console.log('🔄 Setting isLoading to FALSE (auth error)');
         toast({
           title: "خطأ في تسجيل الدخول",
           description: authError.message === 'Invalid login credentials' 
@@ -93,29 +90,34 @@ export function TenantLoginForm({ isLoading, setIsLoading }: TenantLoginFormProp
         return;
       }
 
-      console.log('تم تسجيل الدخول بنجاح:', authData);
-
+      console.log('✅ Auth successful, user ID:', authData.user?.id);
+      
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${profile.username}`,
       });
 
-      console.log('Navigating to dashboard');
-      // الانتقال إلى لوحة التحكم
-      navigate('/dashboard');
+      console.log('🚀 Navigating to dashboard...');
       
-      console.log('Setting isLoading to false - success');
-      setIsLoading(false);
+      // تأخير بسيط للتأكد من اكتمال العملية
+      setTimeout(() => {
+        setIsLoading(false);
+        console.log('🔄 Setting isLoading to FALSE (success)');
+        navigate('/dashboard');
+      }, 100);
+
     } catch (error) {
-      console.error('خطأ عام في تسجيل الدخول:', error);
-      console.log('Setting isLoading to false - catch block');
+      console.error('❌ Unexpected error:', error);
       setIsLoading(false);
+      console.log('🔄 Setting isLoading to FALSE (catch block)');
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
     }
+    
+    console.log('=== LOGIN ATTEMPT END ===');
   };
 
   return (

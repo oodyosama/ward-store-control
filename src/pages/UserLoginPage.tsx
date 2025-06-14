@@ -22,10 +22,11 @@ export default function UserLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('UserLogin handleLogin started, current isLoading:', isLoading);
+    console.log('=== USER LOGIN ATTEMPT START ===');
+    console.log('Current isLoading state:', isLoading);
     
     if (!loginData.username || !loginData.password) {
-      console.log('UserLogin validation failed - missing username or password');
+      console.log('❌ UserLogin validation failed - missing credentials');
       toast({
         title: "خطأ في البيانات",
         description: "يرجى إدخال اسم المستخدم وكلمة المرور",
@@ -34,13 +35,12 @@ export default function UserLoginPage() {
       return;
     }
 
-    console.log('UserLogin setting isLoading to true');
+    console.log('🔄 UserLogin setting isLoading to TRUE');
     setIsLoading(true);
 
     try {
-      console.log('بدء محاولة تسجيل دخول المستخدم:', loginData.username);
+      console.log('🔍 Searching for user:', loginData.username);
 
-      // البحث عن المستخدم في قاعدة البيانات
       const { data: profile, error: profileError } = await supabase
         .from('tenant_profiles')
         .select(`
@@ -53,9 +53,9 @@ export default function UserLoginPage() {
         .single();
 
       if (profileError || !profile) {
-        console.error('خطأ في العثور على المستخدم:', profileError);
-        console.log('UserLogin setting isLoading to false - profile not found');
+        console.error('❌ UserLogin profile not found:', profileError);
         setIsLoading(false);
+        console.log('🔄 UserLogin setting isLoading to FALSE (profile not found)');
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "اسم المستخدم غير موجود",
@@ -64,11 +64,11 @@ export default function UserLoginPage() {
         return;
       }
 
-      // الحصول على البريد الإلكتروني من جدول المؤسسات
       const userEmail = profile.tenants?.email;
       if (!userEmail) {
-        console.log('UserLogin setting isLoading to false - no email');
+        console.log('❌ UserLogin no email found');
         setIsLoading(false);
+        console.log('🔄 UserLogin setting isLoading to FALSE (no email)');
         toast({
           title: "خطأ في تسجيل الدخول",
           description: "البريد الإلكتروني غير موجود",
@@ -77,16 +77,17 @@ export default function UserLoginPage() {
         return;
       }
 
-      // تسجيل الدخول بالبريد الإلكتروني وكلمة المرور
+      console.log('🔐 UserLogin attempting auth with email:', userEmail);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: loginData.password
       });
 
       if (error) {
-        console.error('خطأ في المصادقة:', error);
-        console.log('UserLogin setting isLoading to false - auth error');
+        console.error('❌ UserLogin auth error:', error.message);
         setIsLoading(false);
+        console.log('🔄 UserLogin setting isLoading to FALSE (auth error)');
         toast({
           title: "خطأ في تسجيل الدخول",
           description: error.message === 'Invalid login credentials' 
@@ -97,11 +98,11 @@ export default function UserLoginPage() {
         return;
       }
 
-      // التحقق من أن المستخدم نشط
       const tenantUser = Array.isArray(profile.tenant_users) ? profile.tenant_users[0] : null;
       if (!tenantUser || !tenantUser.is_active) {
-        console.log('UserLogin setting isLoading to false - inactive user');
+        console.log('❌ UserLogin inactive user');
         setIsLoading(false);
+        console.log('🔄 UserLogin setting isLoading to FALSE (inactive user)');
         toast({
           title: "حساب معطل",
           description: "تم تعطيل حسابك. يرجى مراجعة المسؤول",
@@ -111,25 +112,34 @@ export default function UserLoginPage() {
         return;
       }
 
+      console.log('✅ UserLogin successful for user:', profile.username);
+
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${profile.username}`,
       });
 
-      console.log('UserLogin navigating to dashboard');
-      navigate('/dashboard');
-      console.log('UserLogin setting isLoading to false - success');
-      setIsLoading(false);
+      console.log('🚀 UserLogin navigating to dashboard...');
+      
+      // تأخير بسيط للتأكد من اكتمال العملية
+      setTimeout(() => {
+        setIsLoading(false);
+        console.log('🔄 UserLogin setting isLoading to FALSE (success)');
+        navigate('/dashboard');
+      }, 100);
+
     } catch (error) {
-      console.error('خطأ عام في تسجيل الدخول:', error);
-      console.log('UserLogin setting isLoading to false - catch block');
+      console.error('❌ UserLogin unexpected error:', error);
       setIsLoading(false);
+      console.log('🔄 UserLogin setting isLoading to FALSE (catch block)');
       toast({
         title: "خطأ في تسجيل الدخول",
         description: "حدث خطأ غير متوقع",
         variant: "destructive",
       });
     }
+    
+    console.log('=== USER LOGIN ATTEMPT END ===');
   };
 
   return (
