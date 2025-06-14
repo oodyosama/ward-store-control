@@ -62,8 +62,8 @@ export default function UserLoginPage() {
       }
 
       // Check if user is active
-      const tenantUser = profile.tenant_users?.[0];
-      if (!tenantUser?.is_active) {
+      const tenantUser = Array.isArray(profile.tenant_users) ? profile.tenant_users[0] : null;
+      if (!tenantUser || !tenantUser.is_active) {
         toast({
           title: "حساب معطل",
           description: "تم تعطيل حسابك. يرجى مراجعة المسؤول",
