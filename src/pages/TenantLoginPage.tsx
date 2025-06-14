@@ -99,21 +99,106 @@ export default function TenantLoginPage() {
       return;
     }
 
+    if (signupData.password.length < 6) {
+      toast({
+        title: "خطأ في كلمة المرور",
+        description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Create tenant with owner using the database function
-      const { data, error } = await supabase.rpc('create_tenant_with_owner', {
-        tenant_name: signupData.tenantName,
-        owner_email: signupData.email,
-        owner_password: signupData.password,
-        owner_username: signupData.username
+      console.log('Starting tenant signup process...');
+
+      // First create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: signupData.email,
+        password: signupData.password,
       });
 
-      if (error) {
+      if (authError) {
+        console.error('Auth signup error:', authError);
         toast({
           title: "خطأ في إنشاء الحساب",
-          description: error.message,
+          description: authError.message === 'User already registered' 
+            ? "البريد الإلكتروني مستخدم بالفعل" 
+            : authError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!authData.user) {
+        toast({
+          title: "خطأ في إنشاء الحساب",
+          description: "فشل في إنشاء المستخدم",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Auth user created:', authData.user.id);
+
+      // Create tenant
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .insert([{
+          name: signupData.tenantName,
+          email: signupData.email,
+        }])
+        .select()
+        .single();
+
+      if (tenantError) {
+        console.error('Tenant creation error:', tenantError);
+        toast({
+          title: "خطأ في إنشاء المؤسسة",
+          description: "فشل في إنشاء بيانات المؤسسة",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Tenant created:', tenantData.id);
+
+      // Create tenant profile
+      const { error: profileError } = await supabase
+        .from('tenant_profiles')
+        .insert([{
+          user_id: authData.user.id,
+          tenant_id: tenantData.id,
+          username: signupData.username,
+          is_tenant_owner: true,
+        }]);
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        toast({
+          title: "خطأ في إنشاء الملف الشخصي",
+          description: "فشل في إنشاء الملف الشخصي",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create tenant user record
+      const { error: tenantUserError } = await supabase
+        .from('tenant_users')
+        .insert([{
+          tenant_id: tenantData.id,
+          user_id: authData.user.id,
+          role: 'admin',
+          permissions: ['read', 'write', 'delete', 'manage_users'],
+        }]);
+
+      if (tenantUserError) {
+        console.error('Tenant user creation error:', tenantUserError);
+        toast({
+          title: "خطأ في إنشاء صلاحيات المستخدم",
+          description: "فشل في إنشاء صلاحيات المستخدم",
           variant: "destructive",
         });
         return;
@@ -127,6 +212,15 @@ export default function TenantLoginPage() {
       // Switch to login tab
       const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
       loginTab?.click();
+
+      // Clear signup form
+      setSignupData({
+        tenantName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        username: ''
+      });
 
     } catch (error) {
       console.error('Signup error:', error);
@@ -259,11 +353,12 @@ export default function TenantLoginPage() {
                     <Input
                       id="signupPassword"
                       type="password"
-                      placeholder="أدخل كلمة المرور"
+                      placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
                       className="pr-10"
                       value={signupData.password}
                       onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>
@@ -280,6 +375,7 @@ export default function TenantLoginPage() {
                       value={signupData.confirmPassword}
                       onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>
