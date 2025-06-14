@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useContext, createContext, ReactNode } from 'react';
+import { useAdminAuth } from './useAdminAuth';
 
 interface User {
   username: string;
@@ -10,10 +11,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (username: string, role: 'admin' | 'user') => void;
+  login: (username: string, password: string, role: 'admin' | 'user') => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
-  updateAdminCredentials: (newUsername: string, newPassword: string) => void;
+  updateAdminCredentials: (newUsername: string, newPassword: string) => Promise<boolean>;
   mustChangePassword: boolean;
 }
 
@@ -22,9 +23,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { validateAdminCredentials, updateAdminCredentials: updateAdminCreds, checkIfDefaultCredentials } = useAdminAuth();
 
   useEffect(() => {
-    // Check if user is already logged in
+    // التحقق من وجود جلسة مسجلة مسبقاً
     const storedAuth = localStorage.getItem('isAuthenticated');
     const storedUsername = localStorage.getItem('username');
     const storedRole = localStorage.getItem('userRole') as 'admin' | 'user';
@@ -40,43 +42,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (username: string, role: 'admin' | 'user') => {
-    // Check if admin is using default credentials
-    const isDefaultAdmin = role === 'admin' && username === 'admin';
-    const mustChangePassword = isDefaultAdmin;
+  const login = async (username: string, password: string, role: 'admin' | 'user'): Promise<boolean> => {
+    try {
+      if (role === 'admin') {
+        // التحقق من بيانات المدير من قاعدة البيانات
+        const isValid = await validateAdminCredentials(username, password);
+        
+        if (!isValid) {
+          return false;
+        }
 
-    const newUser = { 
-      username, 
-      role,
-      mustChangePassword 
-    };
-    
-    setUser(newUser);
-    setIsAuthenticated(true);
-    
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('username', username);
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('mustChangePassword', mustChangePassword.toString());
+        // التحقق من استخدام البيانات الافتراضية
+        const isDefaultCredentials = await checkIfDefaultCredentials(username);
+        
+        const newUser = { 
+          username, 
+          role: 'admin' as const,
+          mustChangePassword: isDefaultCredentials 
+        };
+        
+        setUser(newUser);
+        setIsAuthenticated(true);
+        
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('username', username);
+        localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('mustChangePassword', isDefaultCredentials.toString());
+        
+        return true;
+      } else {
+        // تسجيل دخول المستخدم العادي (يمكن تطويره لاحقاً)
+        if (username && password) {
+          const newUser = { 
+            username, 
+            role: 'user' as const,
+            mustChangePassword: false 
+          };
+          
+          setUser(newUser);
+          setIsAuthenticated(true);
+          
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('username', username);
+          localStorage.setItem('userRole', 'user');
+          localStorage.setItem('mustChangePassword', 'false');
+          
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
-  const updateAdminCredentials = (newUsername: string, newPassword: string) => {
+  const updateAdminCredentials = async (newUsername: string, newPassword: string): Promise<boolean> => {
     if (user?.role === 'admin') {
-      const updatedUser = {
-        ...user,
-        username: newUsername,
-        mustChangePassword: false
-      };
+      const success = await updateAdminCreds(newUsername, newPassword);
       
-      setUser(updatedUser);
-      
-      // Update localStorage with new credentials
-      localStorage.setItem('username', newUsername);
-      localStorage.setItem('adminPassword', newPassword);
-      localStorage.setItem('mustChangePassword', 'false');
-      
-      console.log('Admin credentials updated successfully');
+      if (success) {
+        const updatedUser = {
+          ...user,
+          username: newUsername,
+          mustChangePassword: false
+        };
+        
+        setUser(updatedUser);
+        
+        // تحديث localStorage
+        localStorage.setItem('username', newUsername);
+        localStorage.setItem('mustChangePassword', 'false');
+        
+        return true;
+      }
     }
+    
+    return false;
   };
 
   const logout = () => {
@@ -87,7 +130,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('mustChangePassword');
-    localStorage.removeItem('adminPassword');
   };
 
   const isAdmin = user?.role === 'admin';

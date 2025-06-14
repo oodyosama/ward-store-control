@@ -20,7 +20,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated, updateAdminCredentials, mustChangePassword } = useAuth();
 
-  // Redirect if already authenticated and doesn't need password change
+  // إعادة التوجيه إذا كان مسجل الدخول بالفعل وليس بحاجة لتغيير كلمة المرور
   useEffect(() => {
     if (isAuthenticated && !mustChangePassword) {
       navigate('/');
@@ -32,50 +32,21 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (isAdminLogin) {
-        // Check if using current admin credentials (default or updated)
-        const storedAdminPassword = localStorage.getItem('adminPassword');
-        const validPassword = storedAdminPassword || 'admin';
-        const storedUsername = localStorage.getItem('username');
-        const validUsername = (storedUsername && localStorage.getItem('userRole') === 'admin') ? storedUsername : 'admin';
-
-        if (username === validUsername && password === validPassword) {
-          login(username, 'admin');
-          
-          toast({
-            title: "تم تسجيل الدخول بنجاح",
-            description: "مرحباً بك مدير النظام",
-          });
-          
-          // Don't navigate if password change is required
-          if (!mustChangePassword) {
-            navigate('/');
-          }
-        } else {
-          toast({
-            title: "خطأ في تسجيل الدخول",
-            description: "اسم المستخدم أو كلمة المرور غير صحيحة",
-            variant: "destructive",
-          });
-        }
+      const success = await login(username, password, isAdminLogin ? 'admin' : 'user');
+      
+      if (success) {
+        toast({
+          title: "تم تسجيل الدخول بنجاح",
+          description: isAdminLogin ? "مرحباً بك مدير النظام" : `مرحباً بك ${username}`,
+        });
+        
+        // عدم التوجه إذا كان بحاجة لتغيير كلمة المرور
       } else {
-        // User login - check against database
-        if (username && password) {
-          login(username, 'user');
-          
-          toast({
-            title: "تم تسجيل الدخول بنجاح",
-            description: `مرحباً بك ${username}`,
-          });
-          
-          navigate('/');
-        } else {
-          toast({
-            title: "خطأ في البيانات",
-            description: "يرجى إدخال اسم المستخدم وكلمة المرور",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "خطأ في تسجيل الدخول",
+          description: "اسم المستخدم أو كلمة المرور غير صحيحة",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -92,16 +63,12 @@ export default function LoginPage() {
     setIsChangingPassword(true);
     
     try {
-      // Update admin credentials
-      updateAdminCredentials(newUsername, newPassword);
+      const success = await updateAdminCredentials(newUsername, newPassword);
       
-      toast({
-        title: "تم تحديث البيانات بنجاح",
-        description: "تم تحديث اسم المستخدم وكلمة المرور بنجاح",
-      });
-      
-      // Navigate to dashboard after successful password change
-      navigate('/');
+      if (success) {
+        // التوجه لصفحة الرئيسية بعد تحديث البيانات بنجاح
+        navigate('/');
+      }
     } catch (error) {
       toast({
         title: "خطأ في تحديث البيانات",
@@ -113,7 +80,7 @@ export default function LoginPage() {
     }
   };
 
-  // Show password change dialog if admin must change password
+  // عرض نافذة تغيير كلمة المرور إذا كان المدير بحاجة لذلك
   if (isAuthenticated && mustChangePassword) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
@@ -142,7 +109,7 @@ export default function LoginPage() {
         </CardHeader>
         
         <CardContent>
-          {/* Toggle buttons */}
+          {/* أزرار التبديل */}
           <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
             <button
               type="button"
@@ -180,7 +147,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={isAdminLogin ? "أدخل اسم المستخدم الحالي" : "أدخل اسم المستخدم"}
+                placeholder={isAdminLogin ? "أدخل اسم المستخدم" : "أدخل اسم المستخدم"}
                 className="text-right"
                 required
               />
@@ -195,7 +162,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isAdminLogin ? "أدخل كلمة المرور الحالية" : "أدخل كلمة المرور"}
+                placeholder={isAdminLogin ? "أدخل كلمة المرور" : "أدخل كلمة المرور"}
                 className="text-right"
                 required
               />
