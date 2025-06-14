@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Package, Warehouse, TrendingUp, AlertTriangle, DollarSign, Activity, Users, Calendar } from 'lucide-react';
 import { useWarehouse } from '@/contexts/WarehouseContext';
@@ -260,7 +259,7 @@ export default function Dashboard() {
       {/* إجراءات سريعة */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">إجراءات سريعة</CodeTitle>
+          <CardTitle className="text-lg font-semibold">إجراءات سريعة</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
