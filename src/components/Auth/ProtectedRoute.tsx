@@ -8,16 +8,18 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useTenant();
+  const { user, profile, isLoading } = useTenant();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
       console.log('No user found, redirecting to login');
       navigate('/login');
     }
   }, [user, isLoading, navigate]);
 
+  // Show loading while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -30,6 +32,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // If no user, show redirect message (navigation will happen via useEffect)
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -40,5 +43,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // User is authenticated, show children even if profile is null
+  // (profile might be null if user hasn't completed setup)
   return <>{children}</>;
 }

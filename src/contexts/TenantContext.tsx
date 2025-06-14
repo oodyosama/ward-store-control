@@ -59,9 +59,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
@@ -86,6 +85,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     try {
       console.log('Fetching profile for user:', userId);
+      setIsLoading(true);
       
       const { data, error } = await supabase
         .from('tenant_profiles')
@@ -99,6 +99,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        setProfile(null);
         setIsLoading(false);
         return;
       }
@@ -113,13 +114,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         setProfile(profileData);
         console.log('Profile loaded:', data.username);
       } else {
-        console.log('No profile found for user');
+        console.log('No profile found for user - user needs to complete setup');
         setProfile(null);
       }
       
       setIsLoading(false);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
+      setProfile(null);
       setIsLoading(false);
     }
   };
