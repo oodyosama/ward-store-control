@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useWarehouse } from '@/contexts/WarehouseContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -22,7 +24,8 @@ import {
   Upload,
   RefreshCw,
   Save,
-  Printer
+  Printer,
+  Receipt
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -39,6 +42,15 @@ export default function SettingsPage() {
     currency: 'SAR',
     language: 'ar',
     timezone: 'Asia/Riyadh'
+  });
+
+  // User information settings
+  const [userSettings, setUserSettings] = useState({
+    userName: 'أحمد محمد',
+    userPhone: '+966501234567',
+    userEmail: 'ahmed@example.com',
+    userPosition: 'مدير المبيعات',
+    showUserInfoOnReceipt: true
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -65,29 +77,34 @@ export default function SettingsPage() {
     debugMode: false
   });
 
-  // Printer settings
+  // Enhanced printer settings
   const [printerSettings, setPrinterSettings] = useState({
     defaultPrinter: 'thermal',
     thermalPrinterIP: '192.168.1.100',
     thermalPrinterPort: 9100,
     autoPrint: true,
-    receiptWidth: 58, // mm
+    receiptWidth: 58, // mm - corrected to actual thermal printer width
+    receiptFormat: 'compact', // compact, standard, detailed
     printCopies: 1,
-    enableSound: true
+    enableSound: true,
+    paperType: 'thermal', // thermal, regular
+    printQuality: 'normal' // draft, normal, high
   });
 
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
-      // Simulate API call - save printer settings
+      // Save all settings including user information
       localStorage.setItem('printerSettings', JSON.stringify(printerSettings));
+      localStorage.setItem('userSettings', JSON.stringify(userSettings));
+      localStorage.setItem('generalSettings', JSON.stringify(generalSettings));
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
         title: "تم حفظ الإعدادات",
-        description: "تم حفظ جميع الإعدادات بما في ذلك إعدادات الطابعة بنجاح",
+        description: "تم حفظ جميع الإعدادات بما في ذلك معلومات المستخدم وإعدادات الطباعة بنجاح",
       });
     } catch (error) {
       toast({
@@ -113,7 +130,7 @@ export default function SettingsPage() {
       
       toast({
         title: "نجح الاختبار",
-        description: "تم الاتصال بالطابعة الحرارية بنجاح",
+        description: `تم الاتصال بالطابعة الحرارية بنجاح - عرض الفاتورة: ${printerSettings.receiptWidth}مم`,
       });
     } catch (error) {
       toast({
@@ -177,6 +194,10 @@ export default function SettingsPage() {
                 <div className="flex items-center space-x-3 rtl:space-x-reverse p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                   <Settings className="w-4 h-4" />
                   <span className="text-sm font-medium">الإعدادات العامة</span>
+                </div>
+                <div className="flex items-center space-x-3 rtl:space-x-reverse p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">معلومات المستخدم</span>
                 </div>
                 <div className="flex items-center space-x-3 rtl:space-x-reverse p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
                   <Printer className="w-4 h-4" />
@@ -268,7 +289,78 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Printer Settings */}
+            {/* User Information Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 rtl:space-x-reverse">
+                  <User className="w-5 h-5" />
+                  <span>معلومات المستخدم</span>
+                </CardTitle>
+                <CardDescription>
+                  معلومات مستخدم البرنامج التي ستظهر في الفواتير والتقارير
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>إظهار معلومات المستخدم في الفاتورة</Label>
+                      <p className="text-sm text-gray-500">عرض اسم ومعلومات المستخدم في الفواتير المطبوعة</p>
+                    </div>
+                    <Checkbox
+                      checked={userSettings.showUserInfoOnReceipt}
+                      onCheckedChange={(checked) => setUserSettings({...userSettings, showUserInfoOnReceipt: !!checked})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label htmlFor="userName">اسم المستخدم</Label>
+                    <Input
+                      id="userName"
+                      value={userSettings.userName}
+                      onChange={(e) => setUserSettings({...userSettings, userName: e.target.value})}
+                      className="text-right"
+                      placeholder="أدخل اسم المستخدم"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userPhone">رقم هاتف المستخدم</Label>
+                    <Input
+                      id="userPhone"
+                      value={userSettings.userPhone}
+                      onChange={(e) => setUserSettings({...userSettings, userPhone: e.target.value})}
+                      className="text-right"
+                      placeholder="+966501234567"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userEmail">بريد المستخدم الإلكتروني</Label>
+                    <Input
+                      id="userEmail"
+                      type="email"
+                      value={userSettings.userEmail}
+                      onChange={(e) => setUserSettings({...userSettings, userEmail: e.target.value})}
+                      className="text-right"
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userPosition">المنصب/الوظيفة</Label>
+                    <Input
+                      id="userPosition"
+                      value={userSettings.userPosition}
+                      onChange={(e) => setUserSettings({...userSettings, userPosition: e.target.value})}
+                      className="text-right"
+                      placeholder="مدير المبيعات"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Enhanced Printer Settings */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -276,7 +368,7 @@ export default function SettingsPage() {
                   <span>إعدادات الطباعة</span>
                 </CardTitle>
                 <CardDescription>
-                  تكوين الطابعات وإعدادات الفواتير
+                  تكوين الطابعات وإعدادات الفواتير بمقاسات مختلفة
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -328,6 +420,60 @@ export default function SettingsPage() {
                       onChange={(e) => setPrinterSettings({...printerSettings, printCopies: parseInt(e.target.value)})}
                     />
                   </div>
+                </div>
+
+                {/* Receipt Size Selection */}
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-3">
+                    <Label>مقاس الفاتورة (عرض الورق الحراري)</Label>
+                    <RadioGroup 
+                      value={printerSettings.receiptWidth.toString()} 
+                      onValueChange={(value) => setPrinterSettings({...printerSettings, receiptWidth: parseInt(value)})}
+                      className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                    >
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse border rounded-lg p-4">
+                        <RadioGroupItem value="58" id="width-58" />
+                        <Label htmlFor="width-58" className="flex-1 cursor-pointer">
+                          <div className="font-medium">58 مم</div>
+                          <div className="text-sm text-gray-500">مناسب للإيصالات السريعة</div>
+                        </Label>
+                        <Receipt className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse border rounded-lg p-4">
+                        <RadioGroupItem value="80" id="width-80" />
+                        <Label htmlFor="width-80" className="flex-1 cursor-pointer">
+                          <div className="font-medium">80 مم</div>
+                          <div className="text-sm text-gray-500">مناسب للفواتير التفصيلية</div>
+                        </Label>
+                        <Receipt className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse border rounded-lg p-4">
+                        <RadioGroupItem value="57" id="width-57" />
+                        <Label htmlFor="width-57" className="flex-1 cursor-pointer">
+                          <div className="font-medium">57 مم</div>
+                          <div className="text-sm text-gray-500">للطابعات المحمولة</div>
+                        </Label>
+                        <Receipt className="w-4 h-4 text-gray-400" />
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="receiptFormat">تنسيق الفاتورة</Label>
+                    <Select value={printerSettings.receiptFormat} onValueChange={(value) => setPrinterSettings({...printerSettings, receiptFormat: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="compact">مضغوط - أساسي</SelectItem>
+                        <SelectItem value="standard">قياسي - متوسط</SelectItem>
+                        <SelectItem value="detailed">مفصل - كامل</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                   <div className="space-y-2">
                     <Label htmlFor="thermalIP">عنوان IP للطابعة الحرارية</Label>
                     <Input
@@ -348,14 +494,15 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="receiptWidth">عرض الفاتورة (مم)</Label>
-                    <Select value={printerSettings.receiptWidth.toString()} onValueChange={(value) => setPrinterSettings({...printerSettings, receiptWidth: parseInt(value)})}>
+                    <Label htmlFor="printQuality">جودة الطباعة</Label>
+                    <Select value={printerSettings.printQuality} onValueChange={(value) => setPrinterSettings({...printerSettings, printQuality: value})}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="58">58 مم</SelectItem>
-                        <SelectItem value="80">80 مم</SelectItem>
+                        <SelectItem value="draft">مسودة - سريع</SelectItem>
+                        <SelectItem value="normal">عادي - متوازن</SelectItem>
+                        <SelectItem value="high">عالي - بطيء</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -364,7 +511,7 @@ export default function SettingsPage() {
                 <div className="flex gap-3 pt-4 border-t">
                   <Button onClick={testThermalPrinter} variant="outline" className="flex-1">
                     <Printer className="w-4 h-4 ml-2" />
-                    اختبار الطابعة الحرارية
+                    اختبار الطابعة ({printerSettings.receiptWidth}مم)
                   </Button>
                 </div>
               </CardContent>

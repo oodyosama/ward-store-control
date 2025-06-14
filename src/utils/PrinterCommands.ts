@@ -1,6 +1,10 @@
 
 export class PrinterCommands {
-  static async printViaWebSerial(receiptText: string): Promise<void> {
+  static async printViaWebSerial(
+    receiptText: string, 
+    paperWidth: number = 58,
+    printQuality: string = 'normal'
+  ): Promise<void> {
     try {
       // Request serial port access
       const port = await (navigator as any).serial.requestPort();
@@ -16,6 +20,29 @@ export class PrinterCommands {
       
       // Set character set to Arabic/UTF-8
       await writer.write(new Uint8Array([0x1C, 0x43, 0xFF]));
+      
+      // Set print quality based on settings
+      switch (printQuality) {
+        case 'draft':
+          await writer.write(new Uint8Array([0x1B, 0x21, 0x01])); // Fast mode
+          break;
+        case 'high':
+          await writer.write(new Uint8Array([0x1B, 0x21, 0x20])); // High quality
+          break;
+        default:
+          await writer.write(new Uint8Array([0x1B, 0x21, 0x00])); // Normal mode
+      }
+      
+      // Set paper width specific commands
+      if (paperWidth <= 58) {
+        // For 58mm paper - set narrower margins
+        await writer.write(new Uint8Array([0x1D, 0x4C, 0x00, 0x00])); // Left margin
+        await writer.write(new Uint8Array([0x1D, 0x57, 0x60])); // Print area width (384 dots for 58mm)
+      } else if (paperWidth <= 80) {
+        // For 80mm paper - set wider margins
+        await writer.write(new Uint8Array([0x1D, 0x4C, 0x00, 0x00])); // Left margin
+        await writer.write(new Uint8Array([0x1D, 0x57, 0x20, 0x02])); // Print area width (576 dots for 80mm)
+      }
       
       // Set text alignment to center for header
       await writer.write(new Uint8Array([0x1B, 0x61, 0x01])); // ESC a 1
@@ -42,7 +69,8 @@ export class PrinterCommands {
     printerIP: string, 
     printerPort: number, 
     printCopies: number, 
-    receiptWidth: number
+    receiptWidth: number,
+    printQuality: string = 'normal'
   ): Promise<void> {
     try {
       // This would send the receipt to a local print service
@@ -55,7 +83,9 @@ export class PrinterCommands {
         body: JSON.stringify({
           text: receiptText,
           copies: printCopies,
-          width: receiptWidth
+          width: receiptWidth,
+          quality: printQuality,
+          paperSize: `${receiptWidth}mm`
         })
       });
       
@@ -64,8 +94,8 @@ export class PrinterCommands {
       }
     } catch (error) {
       // If direct printing fails, show the receipt text for manual printing
-      console.log('Receipt text for thermal printing:\n', receiptText);
-      throw new Error('الطباعة المباشرة غير متاحة. يرجى التحقق من إعدادات الطابعة.');
+      console.log(`Receipt text for ${receiptWidth}mm thermal printing:\n`, receiptText);
+      throw new Error(`الطباعة المباشرة غير متاحة للطابعة ${receiptWidth}مم. يرجى التحقق من إعدادات الطابعة.`);
     }
   }
 
