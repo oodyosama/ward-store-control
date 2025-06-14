@@ -11,6 +11,7 @@ import ItemsPageWithSupabase from "./pages/ItemsPageWithSupabase";
 import WarehousesPage from "./pages/WarehousesPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import ReportsPage from "./pages/ReportsPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import ScannerPage from "./pages/ScannerPage";
 import ArchivePage from "./pages/ArchivePage";
 import UsersPage from "./pages/UsersPage";
@@ -42,6 +43,7 @@ const App = () => {
               <Route path="/warehouses" element={<WarehousesPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/scanner" element={<ScannerPage />} />
               <Route path="/archive" element={<ArchivePage />} />
               <Route path="/users" element={<UsersPage />} />
