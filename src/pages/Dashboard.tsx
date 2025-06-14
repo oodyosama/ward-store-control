@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const { state } = useWarehouse();
   const { dashboardStats, recentTransactions, notifications } = state;
+  const navigate = useNavigate();
 
   if (!dashboardStats) {
     return (
@@ -72,6 +74,16 @@ export default function Dashboard() {
       change: '0',
       changeType: 'neutral'
     }
+  ];
+
+  // قائمة الإجراءات السريعة مع الروابط
+  const quickActions = [
+    { label: 'إضافة صنف جديد', icon: Package, path: '/items' },
+    { label: 'حركة وارد', icon: TrendingUp, path: '/transactions' },
+    { label: 'حركة صادر', icon: Activity, path: '/transactions' },
+    { label: 'تقرير المخزون', icon: Package, path: '/reports' },
+    { label: 'جرد المخزن', icon: Warehouse, path: '/warehouses' },
+    { label: 'ماسح الباركود', icon: Activity, path: '/scanner' },
   ];
 
   return (
@@ -138,7 +150,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold">الحركات الأخيرة</CardTitle>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => navigate('/transactions')}>
                 عرض الكل
               </Button>
             </CardHeader>
@@ -212,7 +224,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" size="sm" className="w-full mt-4">
+              <Button variant="outline" size="sm" className="w-full mt-4" onClick={() => navigate('/notifications')}>
                 عرض جميع الإشعارات
               </Button>
             </CardContent>
@@ -250,20 +262,14 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {[
-              { label: 'إضافة صنف جديد', icon: Package, path: '/items/add' },
-              { label: 'حركة وارد', icon: TrendingUp, path: '/transactions/inbound' },
-              { label: 'حركة صادر', icon: Activity, path: '/transactions/outbound' },
-              { label: 'تقرير المخزون', icon: Package, path: '/reports/stock' },
-              { label: 'جرد المخزن', icon: Warehouse, path: '/inventory' },
-              { label: 'ماسح الباركود', icon: Activity, path: '/scanner' },
-            ].map((action, index) => {
+            {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
                 <Button
                   key={index}
                   variant="outline"
                   className="flex flex-col items-center space-y-2 h-20 hover:shadow-md transition-all duration-200"
+                  onClick={() => navigate(action.path)}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-xs text-center">{action.label}</span>
