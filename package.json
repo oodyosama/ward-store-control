@@ -9,6 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
+     "postinstall": "npm install --legacy-peer-deps",
+  "build": "npm install --legacy-peer-deps && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
